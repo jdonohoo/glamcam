@@ -40,7 +40,7 @@ Ships with **Glaaron**, the hair that started it all, plus four neon wigs nobody
 1. **MediaPipe** puts 478 dots on your face. GlamCam only listens to the forehead, brows, eyes and temples, so the wig doesn't flap when you talk.
 2. The wig gets moved, scaled and rotated to match those dots, every frame.
 3. A second model figures out which pixels are *you* and blurs everything else.
-4. The result goes out through the **OBS Virtual Camera**, which every video app already knows how to use.
+4. The result goes out through the **OBS Virtual Camera**, which every video app already knows how to use, either straight from GlamCam or via an OBS scene.
 
 ## The Wig Closet
 
@@ -58,145 +58,148 @@ Press **`n`** while it's running to cycle through them.
 
 ---
 
-## 📦 The GlamCam app (no terminal required)
+## 🚀 Getting started
 
-Prefer double-clicking? There's a real **GlamCam.app** (macOS) and **GlamCam.exe** (Windows). The app opens straight into a clean output window called **GlamCam** that OBS can grab ([see OBS](#-using-it-inside-obs-streaming--recording)). Close the window to quit.
+Three steps, about 10 minutes the first time:
 
-**Get it:**
+1. **[Set up OBS](#step-1--set-up-obs-one-time)**: it provides the virtual camera Meet will see.
+2. **Get GlamCam**: the **[app](#step-2a--the-glamcam-app-easiest)** (double-click, no Python) or **[from source](#step-2b--run-from-source)** (for tinkering).
+3. **[Connect it to Meet](#step-3--get-it-into-google-meet)**.
 
-- **Build it yourself** (easiest on the Mac you're on). After cloning, run `./build_app.sh` (macOS) or `build_app.bat` (Windows). You get `dist/GlamCam.app`, which you drag to **Applications**, or `dist\GlamCam\GlamCam.exe` on Windows (keep the exe inside its folder and make a shortcut to it).
-- **Download it**: every push builds both apps on GitHub's Mac and Windows machines (the **Actions** tab → latest **Build apps** run → **Artifacts**). Tagged versions also get attached to **Releases**.
+### Step 1 · Set up OBS (one time)
 
-**First launch:**
+GlamCam's video reaches Meet through the **OBS Virtual Camera**, so OBS needs to install that camera once.
 
-- **macOS, downloaded app**: it isn't signed by Apple, so macOS will refuse to open it the first time. Go to **System Settings → Privacy & Security** and click **Open Anyway**, or run `xattr -dr com.apple.quarantine /Applications/GlamCam.app`. (An app you built yourself skips this.) Then allow the camera when asked. GlamCam now gets its *own* row in the Camera list, separate from Terminal.
-- **Windows**: SmartScreen may say "Windows protected your PC". Click **More info → Run anyway**.
+**macOS**
 
-**Where your stuff lives:** wigs you make and saved fits go in `~/Library/Application Support/GlamCam` (macOS) or `%APPDATA%\GlamCam` (Windows), so they survive app updates. To make a wig with the app:
+1. Install OBS from [obsproject.com](https://obsproject.com), or with Homebrew:
+   ```bash
+   brew install --cask obs
+   ```
+   Keep **OBS.app** in your **Applications** folder. macOS won't install the camera from anywhere else.
+2. Open OBS and click **Start Virtual Camera** (Controls panel, bottom right).
+3. macOS says a system extension was blocked. Allow it: **System Settings → General → Login Items & Extensions → Camera Extensions → OBS on**. On macOS 13–14 it's **Privacy & Security → Allow**.
+4. **Restart your Mac.** If OBS says *"Could not find the virtual camera system process"*, macOS hasn't loaded the camera yet. A restart (or log out and back in) fixes it.
+5. Check it worked. This should print `[activated enabled]`:
+   ```bash
+   systemextensionsctl list | grep -i obs
+   ```
 
-```bash
-/Applications/GlamCam.app/Contents/MacOS/GlamCam --make-wig ~/Pictures/kevin.jpg --name Kevin
-```
+**Windows**
 
-```powershell
-.\GlamCam.exe --make-wig C:\Users\you\Pictures\kevin.jpg --name Kevin
-```
+1. Install OBS from [obsproject.com](https://obsproject.com), or:
+   ```powershell
+   winget install -e --id OBSProject.OBSStudio
+   ```
+2. Open OBS, click **Start Virtual Camera**, then **Stop Virtual Camera**. Done.
 
-Want the app to send to the OBS Virtual Camera directly (no OBS window step), like `run.sh` does? Launch it with `--vcam`.
+### Step 2a · The GlamCam app (easiest)
 
----
+A real **GlamCam.app** / **GlamCam.exe**: double-click it and a window called **GlamCam** opens with your wig on. Close the window to quit.
 
-## 🍎 Install on macOS
+**Get it** (pick one):
 
-Works on Apple Silicon (M1–M4, Mac Studio, etc.) and Intel Macs. Takes about 5 minutes, 4 of which are downloads.
+- **Download it.** Grab the zip for your system from [**Releases**](https://github.com/jdonohoo/glamcam/releases). Bleeding-edge builds from every push are in the [**Actions** tab](https://github.com/jdonohoo/glamcam/actions/workflows/build-apps.yml) → latest run → **Artifacts** (needs a GitHub login).
+- **Build it yourself.** Clone the repo (see [Step 2b](#step-2b--run-from-source)), then run `./build_app.sh` on macOS or double-click `build_app.bat` on Windows. You get `dist/GlamCam.app` or `dist\GlamCam\GlamCam.exe`.
 
-**1. Install Homebrew** (skip if `brew --version` already works). Paste the command from [brew.sh](https://brew.sh) into Terminal.
+**Install it:**
 
-**2. Install Python 3.12 and OBS**
+- **macOS:** unzip and drag **GlamCam.app** into **Applications**. A *downloaded* app isn't signed by Apple, so the first open is blocked. Go to **System Settings → Privacy & Security** and click **Open Anyway**, or run:
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/GlamCam.app
+  ```
+  An app you built yourself skips this.
+- **Windows:** unzip anywhere and keep **GlamCam.exe inside its folder** (it needs the files next to it). Right-click → **Send to → Desktop (create shortcut)**. If SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
 
-```bash
-brew install python@3.12
-```
+**First launch:** allow the camera when asked. On macOS, GlamCam gets its own switch in **System Settings → Privacy & Security → Camera**.
 
-```bash
-brew install --cask obs
-```
+**Your stuff:** wigs you make and saved fits live in `~/Library/Application Support/GlamCam` (macOS) or `%APPDATA%\GlamCam` (Windows), so they survive app updates.
 
-> macOS ships an ancient Python 3.9, and pyenv likes to hand you that one. GlamCam needs **3.10–3.13**. `setup.sh` hunts down the Homebrew one for you.
+Now go to [Step 3](#step-3--get-it-into-google-meet).
 
-**3. Wake up the OBS Virtual Camera (one time only)**
+### Step 2b · Run from source
 
-Open **OBS** → click **Start Virtual Camera** (bottom right). If macOS asks to allow a system extension, allow it in **System Settings → General → Login Items & Extensions** (or **Privacy & Security** on older macOS). Then click **Stop Virtual Camera** and **quit OBS**. GlamCam borrows that camera, and OBS can't be using it at the same time.
+For hacking on GlamCam, or if you'd rather not run an unsigned app. Needs **Python 3.10–3.13**.
 
-**4. Get GlamCam**
+**macOS**
 
-```bash
-git clone https://github.com/jdonohoo/glamcam.git
-```
+1. Install Python (needs [Homebrew](https://brew.sh)):
+   ```bash
+   brew install python@3.12
+   ```
+   macOS ships an ancient Python 3.9, and pyenv likes to hand you that one. `setup.sh` hunts down the Homebrew one for you.
+2. Get the code and set it up. This makes a private `.venv`, installs everything, and downloads the AI models (~5 MB):
+   ```bash
+   git clone https://github.com/jdonohoo/glamcam.git
+   ```
+   ```bash
+   cd glamcam && ./setup.sh
+   ```
+3. Run it **from Terminal or iTerm2 on the Mac itself**, not over SSH or from an SSH app like Termius. macOS won't give those camera access. The first time, macOS asks whether your terminal may use the camera: click **Allow**.
+   ```bash
+   ./run.sh --obs-window
+   ```
 
-```bash
-cd glamcam
-```
+**Windows**
 
-(No git? Hit **Code → Download ZIP** on GitHub and unzip it.)
+1. Install Python, then open a **new** terminal:
+   ```powershell
+   winget install -e --id Python.Python.3.12
+   ```
+2. Get the code (or **Code → Download ZIP** on GitHub, then **Extract All**):
+   ```powershell
+   git clone https://github.com/jdonohoo/glamcam.git
+   ```
+3. Double-click **`setup.bat`** in the `glamcam` folder. If SmartScreen gets nervous, click **More info → Run anyway**. It's a text file that runs `pip install`. We promise. Look at it.
+4. Run it:
+   ```powershell
+   .\run.bat --obs-window
+   ```
+   If the camera won't open: **Settings → Privacy & security → Camera →** turn on **Let desktop apps access your camera**.
 
-**5. Set it up**
+Forgot `setup`? `run.sh` / `run.bat` notice and do it for you.
 
-```bash
-./setup.sh
-```
+> **Mac Studio / Mac mini / desktop PCs** may have several cameras. If GlamCam grabs the wrong one (hi, iPhone Continuity Camera 👋), add `--camera 1`, then `--camera 2`, and so on.
 
-This makes a private `.venv`, installs everything, and downloads the face models (~5 MB). (Forgot this step? `run.sh` notices and does it for you.)
+### Step 3 · Get it into Google Meet
 
-**6. Get glam**
+There are two routes. **Route A works everywhere and is what the app does by default.**
 
-```bash
-./run.sh
-```
+#### Route A: through OBS (recommended)
 
-Run this from **Terminal** or **iTerm2** on the Mac itself, not over SSH or from an SSH app like Termius. macOS won't give those camera access. The first time, macOS asks whether your terminal may use the camera: click **Allow** and GlamCam carries on.
+GlamCam shows your glamorous self in a window, OBS captures that window, and OBS's virtual camera sends it to Meet.
 
-> **Mac Studio / Mac mini / desktop Macs** have no built-in camera. If GlamCam grabs the wrong one (hi, iPhone Continuity Camera 👋), try `./run.sh --camera 1`, then `--camera 2`, and so on.
+1. Start GlamCam: open the **app**, or `./run.sh --obs-window` / `.\run.bat --obs-window` from source. Leave the **GlamCam** window open. Other windows can cover it.
+2. In OBS, add the window as a source:
+   - **macOS:** Sources **+** → **Deprecated** → **Window Capture** → window **[GlamCam] GlamCam** (**[python] GlamCam** when running from source). Use this older source on purpose: the newer *macOS Screen Capture* forgets the window every time GlamCam restarts, while the old one finds it again by name. The first time, OBS needs **System Settings → Privacy & Security → Screen & System Audio Recording → OBS on** (then reopen OBS).
+   - **Windows:** Sources **+** → **Window Capture** → **[GlamCam.exe]: GlamCam** (**[python.exe]: GlamCam** from source), and set **Window Match Priority** to **Window title must match**.
+3. If the window's title bar shows up in OBS, hold **⌥** (**Alt** on Windows) and drag the source's top edge down to crop it off.
+4. In OBS, click **Start Virtual Camera**.
+5. In Meet: **⋮ → Settings → Video → Camera → OBS Virtual Camera**. Turn **off** Meet's own blur and effects (GlamCam already did that, and two blurs make a smudge).
 
-**7. In Google Meet**: **Settings → Video → Camera → OBS Virtual Camera**. Turn **off** Meet's own blur and effects (GlamCam already did that, and two blurs make a smudge).
+The window is always called **GlamCam**, so you can quit and relaunch GlamCam and OBS picks it right back up. Bonus: you get OBS scenes, overlays and recording for free.
 
----
+#### Route B: direct (no OBS window)
 
-## 🪟 Install on Windows
+GlamCam sends straight into the OBS Virtual Camera itself. Fewer moving parts, but on some Macs the picture comes out black. If that happens, use Route A.
 
-Works on Windows 10 and 11.
+1. **Quit OBS** completely. Only one program can drive the virtual camera.
+2. Start GlamCam: `./run.sh` / `.\run.bat` from source, or launch the app with `--vcam`:
+   ```bash
+   /Applications/GlamCam.app/Contents/MacOS/GlamCam --vcam
+   ```
+   The terminal should print `Broadcasting 1280x720 to: OBS Virtual Camera`.
+3. In Meet: **⋮ → Settings → Video → Camera → OBS Virtual Camera**.
 
-**1. Install Python 3.12 and OBS.** Open **PowerShell** or **Terminal** and run:
+In this route the preview window is mirrored like a selfie camera. Meet still gets the un-mirrored version, same as any webcam.
 
-```powershell
-winget install -e --id Python.Python.3.12
-```
-
-```powershell
-winget install -e --id OBSProject.OBSStudio
-```
-
-(Or grab them from [python.org](https://www.python.org/downloads/) and [obsproject.com](https://obsproject.com). Either way, close and reopen your terminal afterwards so it notices Python.)
-
-**2. Wake up the OBS Virtual Camera (one time only)**
-
-Open **OBS** → click **Start Virtual Camera** → click **Stop Virtual Camera** → **close OBS**. GlamCam uses that same camera, and OBS can't be using it at the same time.
-
-**3. Get GlamCam**
-
-```powershell
-git clone https://github.com/jdonohoo/glamcam.git
-```
-
-(No git? On GitHub, click **Code → Download ZIP**, then right-click the ZIP → **Extract All**.)
-
-**4. Set it up.** Double-click **`setup.bat`** in the `glamcam` folder. Or, from a terminal:
-
-```powershell
-cd glamcam
-```
-
-```powershell
-.\setup.bat
-```
-
-If Windows SmartScreen gets nervous, click **More info → Run anyway**. It's a text file that runs `pip install`. We promise. Look at it.
-
-**5. Get glam.** Double-click **`run.bat`**, or with options:
-
-```powershell
-.\run.bat --wig disco-inferno
-```
-
-If the camera won't open: **Settings → Privacy & security → Camera →** turn on **Let desktop apps access your camera**.
-
-**6. In Google Meet**: **Settings → Video → Camera → OBS Virtual Camera**. If it's not in the list, fully quit and reopen Chrome or Edge.
+**Test without Meet (macOS):** **QuickTime Player → File → New Movie Recording**, click the **⌄** next to the record button, and choose **OBS Virtual Camera**.
 
 ---
 
 ## 🎮 Controls
 
-Click the preview window first, then:
+Click the **GlamCam** window first, then:
 
 | Key | Does |
 |---|---|
@@ -206,101 +209,101 @@ Click the preview window first, then:
 | `h` | Wig off / on (for when your skip-level joins) |
 | `b` | Background blur off / on |
 | `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |
-| `p` | Save this wig's fit (remembered in `fit.json`) |
-| `?` | Show the keys on screen |
-| `q` / `Esc` | Quit, return to your natural, disappointing hair |
-
-The preview is mirrored like a mirror. Meet gets the un-mirrored version, the same way it handles a normal camera.
+| `p` | Save this wig's fit, so it's remembered next time |
+| `?` | Show the keys on screen for a few seconds |
+| `q` / `Esc` / close the window | Quit, return to your natural, disappointing hair |
 
 ## 🧪 Make your own wig
 
 <p align="center"><img src="assets/diy.png" alt="Step 1: a photo of Kevin. Step 2: AI cuts out only the hair. Step 3: you, wearing Kevin's hair."></p>
 
-Any photo with a face and some hair works. GlamCam finds the face, cuts out *only* the hair, and saves it as a wig.
+Any photo with a face and some hair works. GlamCam finds the face, cuts out *only* the hair, and saves it as a wig. Then press `n` until you reach it, or start with `--wig kevin`.
 
-macOS:
+From source, macOS:
 
 ```bash
 ./run.sh --make-wig ~/Pictures/kevin.jpg --name Kevin
 ```
 
-```bash
-./run.sh --wig kevin
-```
-
-Windows:
+From source, Windows:
 
 ```powershell
 .\run.bat --make-wig C:\Users\you\Pictures\kevin.jpg --name Kevin
 ```
 
+With the app, macOS:
+
+```bash
+/Applications/GlamCam.app/Contents/MacOS/GlamCam --make-wig ~/Pictures/kevin.jpg --name Kevin
+```
+
+With the app, Windows (from the folder with GlamCam.exe):
+
 ```powershell
-.\run.bat --wig kevin
+.\GlamCam.exe --make-wig C:\Users\you\Pictures\kevin.jpg --name Kevin
 ```
 
 **For the best wig:**
 
-- Face the camera straight on, with the hair clearly visible. Plain backgrounds help.
-- Screenshots of video calls work fine (that's how Glaaron was born). Bigger is better.
+- A real photo beats a screenshot: phone camera, sent as the original file.
+- Face the camera straight on, head level, hair clearly visible and not over the face.
+- A plain background that contrasts with the hair, soft light from the front.
+- Frame from mid-chest up so all the hair fits, with some room above the head.
 - If it sits a bit off, nudge it with `w a s d` / `- =` and press `p` to save.
 
-Wigs you make go in **`my-wigs/`**, which is **git-ignored**, so you can't accidentally publish Kevin. Only the hair is kept: the face and background are blanked out of the file entirely, not just made transparent.
+Wigs you make go in **`my-wigs/`** when running from source (it's **git-ignored**, so you can't accidentally publish Kevin), or the app's data folder (see [Step 2a](#step-2a--the-glamcam-app-easiest)). Only the hair is kept: the face and background are blanked out of the file entirely, not just made transparent.
 
 > 💅 **Wig etiquette:** Hair is personal. Ask before you wear someone's. Glaaron is here with Aaron's full, enthusiastic blessing. Aaron is reportedly very excited.
 
 Want to add a wig for everyone? Put `name.png` + `name.json` in `wigs/` and open a PR. The neon wigs are drawn in code in [`tools/draw_wigs.py`](tools/draw_wigs.py), if you want to make more.
 
-## 🎬 Using it inside OBS (streaming / recording)
-
-While `run.sh` is running, GlamCam *is* the OBS Virtual Camera's video, so OBS can't also pick it up as a camera (on macOS it even hides its own virtual camera from its camera list). Instead, give OBS the GlamCam window and let OBS run the virtual camera:
-
-1. Start GlamCam in OBS mode: open **GlamCam.app / GlamCam.exe**, or `./run.sh --obs-window` (Windows: `.\run.bat --obs-window`). You get a window called **GlamCam**, un-mirrored, with no text on top.
-2. Add it to OBS:
-   - **macOS**: Sources **+** → **Deprecated** → **Window Capture** → window **[GlamCam] GlamCam** (from source it's listed under **[python]**). Use this older source on purpose. The newer *macOS Screen Capture* forgets the window every time GlamCam restarts, and the old one finds it again by name.
-   - **Windows**: Sources **+** → **Window Capture** → **[GlamCam.exe]: GlamCam** (or **[python.exe]** from source), and set **Window Match Priority** to **Window title must match**.
-3. If the title bar shows, hold ⌥ (Alt on Windows) and drag the top edge of the source down to crop it off.
-4. Click **Start Virtual Camera** in OBS and pick **OBS Virtual Camera** in Meet. Scenes, overlays and all the OBS goodness come along for free.
-
-Because the window is always called **GlamCam**, you can quit and relaunch GlamCam and OBS picks it right back up.
-
-To check the virtual camera without opening Meet: **QuickTime Player → File → New Movie Recording**, click the ⌄ next to the record button, and choose **OBS Virtual Camera**.
-
 ## ⚙️ All the options
+
+Pass these to `run.sh` / `run.bat`, or to the app's executable.
 
 | Option | Does |
 |---|---|
 | `--wig NAME` | Start with this wig (default `glaaron`) |
 | `--list-wigs` | Show every wig you've got |
 | `--make-wig PHOTO` | Turn a photo into a wig (`--name` to name it) |
+| `--obs-window` | Route A: clean, un-mirrored **GlamCam** window for OBS, no virtual camera. The app's default |
+| `--vcam` | App only: Route B, send straight to the OBS Virtual Camera |
+| `--no-vcam` | From source: just the mirrored preview, no virtual camera |
 | `--camera N` | Use camera number N (default 0) |
 | `--width` / `--height` / `--fps` | Camera resolution (default 1280×720 @ 30) |
 | `--smooth 0.7` | Steadier wig, a bit more lag (0–0.9, default 0.5) |
 | `--no-blur` | Start with background blur off |
 | `--match-lighting` | Start with lighting match on |
-| `--no-vcam` | Preview only, don't send to the virtual camera |
-| `--obs-window` | Clean, un-mirrored output window for OBS window capture (skips the virtual camera). The app does this by default |
-| `--vcam` | App only: send to the OBS Virtual Camera directly instead |
-| `--download-models` | Re-download the AI models |
+| `--download-models` | Re-download the AI models (from source) |
 
 ## 🩹 Troubleshooting
 
-**"GlamCam needs Python 3.10–3.13"**
-macOS: `brew install python@3.12`, then `./setup.sh` again. Windows: `winget install -e --id Python.Python.3.12`, open a **new** terminal, then run `setup.bat` again.
+**OBS: "Could not find the virtual camera system process"**
+The camera extension is installed but macOS hasn't loaded it. Restart the Mac (or log out and back in). Then check `systemextensionsctl list | grep -i obs` shows `[activated enabled]`.
 
-**"Virtual camera unavailable"**
-Install OBS, click **Start Virtual Camera** once, then stop it and quit OBS. If OBS is open with its own virtual camera running, GlamCam can't use it.
+**"Virtual camera unavailable"** (Route B)
+Do [Step 1](#step-1--set-up-obs-one-time). And make sure OBS isn't running its own virtual camera at the same time.
 
-**Meet shows a black screen or "camera in use"**
-OBS is probably still running its virtual camera. Quit OBS, then restart GlamCam.
+**Meet shows a black screen**
+Route A: is **Start Virtual Camera** on in OBS, and does the OBS preview show you? Route B: quit OBS completely and restart GlamCam. If it's still black on a Mac, switch to Route A.
 
-**GlamCam doesn't show up as a camera inside OBS**
-That's expected: GlamCam is sending to OBS's own virtual camera, which OBS hides from its own camera list. Use the app (or `--obs-window`) and Window Capture ([see above](#-using-it-inside-obs-streaming--recording)).
+**The GlamCam window is black or missing in OBS**
+On macOS use **Deprecated → Window Capture**, not *macOS Screen Capture* ([Route A](#route-a-through-obs-recommended)), and give OBS **Screen & System Audio Recording** permission. On Windows, set **Window Match Priority → Window title must match**. GlamCam must be running before OBS can show it.
+
+**I added "OBS Virtual Camera" as a camera inside OBS and it's black**
+That's OBS looking at its own output. Capture the **GlamCam** window instead ([Route A](#route-a-through-obs-recommended)).
 
 **"OBS Virtual Camera" isn't in Meet's camera list**
-Fully quit the browser (on Mac, ⌘Q, not just closing the window) and reopen it.
+Fully quit the browser (on Mac ⌘Q, not just closing the window) and reopen it.
 
 **Could not open camera**
-On a Mac, run it from **Terminal** or **iTerm2** on the Mac itself. SSH sessions and SSH apps like Termius can't get camera permission (they never even show up in the Camera list). Make sure your terminal is switched on in **System Settings → Privacy & Security → Camera**, and if you just switched it on, quit the terminal (⌘Q) and reopen it. On Windows, check **Settings → Privacy & security → Camera**. Still stuck? Try `--camera 1` (or 2, 3…) and close other apps using the camera (Zoom, FaceTime, Photo Booth).
+On a Mac, run it from **Terminal** or **iTerm2** on the Mac itself, or use the app. SSH sessions and SSH apps like Termius can't get camera permission (they never even show up in the Camera list). Make sure your terminal (or GlamCam) is switched on in **System Settings → Privacy & Security → Camera**, and if you just switched it on, quit the terminal (⌘Q) and reopen it. On Windows, check **Settings → Privacy & security → Camera**. Still stuck? Try `--camera 1` (or 2, 3…) and close other apps using the camera (Zoom, FaceTime, Photo Booth).
+
+**macOS: "GlamCam can't be opened" / "Apple could not verify…"**
+Downloaded apps aren't signed. **System Settings → Privacy & Security → Open Anyway**, or build it yourself with `./build_app.sh`.
+
+**"GlamCam needs Python 3.10–3.13"** (from source)
+macOS: `brew install python@3.12`, then `./setup.sh` again. Windows: `winget install -e --id Python.Python.3.12`, open a **new** terminal, then run `setup.bat` again.
 
 **The wig jitters**
 `--smooth 0.7`. Good lighting on your face helps a lot too. Trackers love a ring light.
@@ -311,9 +314,18 @@ It hides when it can't see your face for a third of a second. Come back into fra
 **Turning my head sideways looks weird**
 The wig follows sliding, tilting and leaning in or out, but it's a flat picture, so it doesn't rotate in 3D. Keep it facing the camera. Like a newscaster. A glamorous newscaster.
 
+## 🛠️ Building the apps
+
+- **Locally:** `./build_app.sh` (macOS, makes `dist/GlamCam.app`) or `build_app.bat` (Windows, makes `dist\GlamCam\`). Each one sets things up if needed, builds with PyInstaller from [`glamcam.spec`](glamcam.spec), and runs a self-test on the result. Builds are for the machine you're on: build the Mac app on a Mac and the Windows app on Windows.
+- **On GitHub:** [`.github/workflows/build-apps.yml`](.github/workflows/build-apps.yml) builds and self-tests both apps on every push to `master` / `glamcam-v1`. To publish a release, push a version tag and the zips get attached to [Releases](https://github.com/jdonohoo/glamcam/releases) automatically:
+  ```bash
+  git tag v1.0.0 && git push origin v1.0.0
+  ```
+
 ## Credits
 
-- Face tracking and segmentation: [MediaPipe](https://ai.google.dev/edge/mediapipe) (Apache 2.0 models, downloaded at setup)
+- Face tracking and segmentation: [MediaPipe](https://ai.google.dev/edge/mediapipe) (Apache 2.0 models)
+- App packaging: [PyInstaller](https://pyinstaller.org)
 - Virtual camera: [pyvirtualcam](https://github.com/letmaik/pyvirtualcam) + [OBS Studio](https://obsproject.com)
 - Glaaron: Aaron's hair, used with permission and deep admiration
 - Aesthetic: lovingly inspired by [Charm](https://charm.land) ✨
