@@ -44,7 +44,7 @@ if sys.platform == "darwin":
         bundle_identifier="com.jdonohoo.glamcam",
         info_plist={
             "CFBundleDisplayName": "GlamCam",
-            "CFBundleShortVersionString": "1.0.0",
+            "CFBundleShortVersionString": Path("VERSION").read_text().strip(),
             # without this macOS refuses camera access outright, with no pop-up
             "NSCameraUsageDescription": "GlamCam needs your camera to put a wig on you.",
             "NSHighResolutionCapable": True,

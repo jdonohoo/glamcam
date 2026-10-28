@@ -317,10 +317,8 @@ The wig follows sliding, tilting and leaning in or out, but it's a flat picture,
 ## 🛠️ Building the apps
 
 - **Locally:** `./build_app.sh` (macOS, makes `dist/GlamCam.app`) or `build_app.bat` (Windows, makes `dist\GlamCam\`). Each one sets things up if needed, builds with PyInstaller from [`glamcam.spec`](glamcam.spec), and runs a self-test on the result. Builds are for the machine you're on: build the Mac app on a Mac and the Windows app on Windows.
-- **On GitHub:** [`.github/workflows/build-apps.yml`](.github/workflows/build-apps.yml) builds and self-tests both apps on every push to `master` / `glamcam-v1`. To publish a release, push a version tag and the zips get attached to [Releases](https://github.com/jdonohoo/glamcam/releases) automatically:
-  ```bash
-  git tag v1.0.0 && git push origin v1.0.0
-  ```
+- **On GitHub:** [`.github/workflows/build-apps.yml`](.github/workflows/build-apps.yml) builds and self-tests both apps on every push to `master` / `glamcam-v1`.
+- **Releasing:** bump the number in [`VERSION`](VERSION) (e.g. `1.0.1`) and push. Once the builds pass, GitHub tags that commit `v1.0.1` and publishes a [Release](https://github.com/jdonohoo/glamcam/releases) with the Mac and Windows zips. Pushing a `v*` tag yourself works too.
 
 ## Credits
 
