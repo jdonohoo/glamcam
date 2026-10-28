@@ -12,7 +12,9 @@ Keys (click the preview window first):
   q/Esc    quit
 """
 import argparse
+import contextlib
 import json
+import os
 import ssl
 import sys
 import time
@@ -67,6 +69,21 @@ def download_models(names=MODELS):
             sys.exit(f"Could not download {MODELS[name]}\n  {e}\n"
                      f"Download it in a browser and save it as {dest}")
         dest.write_bytes(data)
+
+
+@contextlib.contextmanager
+def quiet_native_logs():
+    """MediaPipe's C++ side prints a wall of INFO/WARNING lines at startup; mute fd 2 meanwhile."""
+    sys.stderr.flush()
+    saved = os.dup(2)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, 2)
+    try:
+        yield
+    finally:
+        os.dup2(saved, 2)
+        os.close(devnull)
+        os.close(saved)
 
 
 def similarity_transform(src, dst):
@@ -176,6 +193,10 @@ class GlamRenderer:
         self.mask = None
         self.lost_frames = 0
 
+        with quiet_native_logs():
+            self._load_models()
+
+    def _load_models(self):
         self.landmarker = vision.FaceLandmarker.create_from_options(vision.FaceLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=model_path("face_landmarker.task")),
             running_mode=vision.RunningMode.VIDEO, num_faces=1))
@@ -294,9 +315,17 @@ def open_virtual_camera(w, h, fps):
     try:
         cam = pyvirtualcam.Camera(width=w, height=h, fps=fps, fmt=pyvirtualcam.PixelFormat.BGR)
     except RuntimeError as e:
-        sys.exit(f"Virtual camera unavailable: {e}\n"
-                 "Install OBS Studio, click 'Start Virtual Camera' once, then stop it and quit OBS "
-                 "before starting GlamCam. (Or run with --no-vcam to just preview.)")
+        if sys.platform == "darwin":
+            steps = ("  1. Put OBS in /Applications, open it, click 'Start Virtual Camera'\n"
+                     "  2. Allow the blocked extension: System Settings > General > Login Items & Extensions >\n"
+                     "     Camera Extensions > OBS (macOS 13-14: Privacy & Security > Allow)\n"
+                     "  3. Click 'Stop Virtual Camera', quit OBS (restart the Mac if it's still not found)\n"
+                     "  Check with: systemextensionsctl list | grep -i obs   (want: activated enabled)")
+        else:
+            steps = "  Install OBS Studio, click 'Start Virtual Camera' once, then stop it and close OBS."
+        sys.exit(f"Virtual camera unavailable: {e}\n\nOne-time OBS setup:\n{steps}\n\n"
+                 "OBS itself must not be running its virtual camera while GlamCam is.\n"
+                 "Just want to see the wig? ./run.sh --no-vcam")
     print(f"Broadcasting {w}x{h} to: {cam.device}")
     return cam
 
