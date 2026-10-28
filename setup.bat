@@ -2,6 +2,8 @@
 rem GlamCam one-time setup for Windows: makes .venv, installs deps, fetches models.
 setlocal
 cd /d "%~dp0"
+set "PAUSE=pause"
+if /i "%~1"=="--no-pause" set "PAUSE="
 
 rem Needs Python 3.10-3.13; prefer 3.12. Uses the "py" launcher from python.org / winget installs.
 set "PY="
@@ -17,7 +19,7 @@ if not defined PY (
   echo GlamCam needs Python 3.10-3.13.
   echo Install it with:  winget install -e --id Python.Python.3.12
   echo then open a NEW terminal and run setup.bat again.
-  pause
+  %PAUSE%
   exit /b 1
 )
 echo Using %PY%
@@ -29,11 +31,11 @@ if exist .venv rmdir /s /q .venv
 .venv\Scripts\python glamcam.py --download-models || goto :fail
 echo.
 echo Setup done. Get glam with:  run.bat
-pause
+%PAUSE%
 exit /b 0
 
 :fail
 echo.
 echo Setup failed. Scroll up for the error.
-pause
+%PAUSE%
 exit /b 1

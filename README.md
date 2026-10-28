@@ -98,7 +98,7 @@ cd glamcam
 ./setup.sh
 ```
 
-This makes a private `.venv`, installs everything, and downloads the face models (~5 MB).
+This makes a private `.venv`, installs everything, and downloads the face models (~5 MB). (Forgot this step? `run.sh` notices and does it for you.)
 
 **6. Get glam**
 
