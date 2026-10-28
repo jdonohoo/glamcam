@@ -216,7 +216,7 @@ Windows:
 
 Wigs you make go in **`my-wigs/`**, which is **git-ignored**, so you can't accidentally publish Kevin. Only the hair is kept: the face and background are blanked out of the file entirely, not just made transparent.
 
-> 💅 **Wig etiquette:** Hair is personal. Ask before you wear someone's.
+> 💅 **Wig etiquette:** Hair is personal. Ask before you wear someone's. Glaaron is here with Aaron's full, enthusiastic blessing (Aaron asked when it ships).
 
 Want to add a wig for everyone? Put `name.png` + `name.json` in `wigs/` and open a PR. The neon wigs are drawn in code in [`tools/draw_wigs.py`](tools/draw_wigs.py), if you want to make more.
 
@@ -264,7 +264,7 @@ The wig follows sliding, tilting and leaning in or out, but it's a flat picture,
 
 - Face tracking and segmentation: [MediaPipe](https://ai.google.dev/edge/mediapipe) (Apache 2.0 models, downloaded at setup)
 - Virtual camera: [pyvirtualcam](https://github.com/letmaik/pyvirtualcam) + [OBS Studio](https://obsproject.com)
-- Glaaron: Aaron's hair, worn with deep admiration
+- Glaaron: Aaron's hair, used with permission and deep admiration
 - Aesthetic: lovingly inspired by [Charm](https://charm.land) ✨
 
 MIT licensed. See [LICENSE](LICENSE).
