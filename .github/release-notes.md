@@ -3,10 +3,9 @@
 | Your computer | Download |
 |---|---|
 | Mac with Apple Silicon (M1–M4, Mac Studio…) | **GlamCam-macOS-AppleSilicon.zip** |
-| Intel Mac | **GlamCam-macOS-Intel.zip** |
 | Windows 10 / 11 | **GlamCam-Windows.zip** |
 
-Not sure which Mac you have?  → **About This Mac**: "Chip: Apple M…" means Apple Silicon.
+The Mac app is Apple Silicon only. Intel Macs can [run from source](https://github.com/jdonohoo/glamcam#step-2b--run-from-source).
 
 ## First launch
 

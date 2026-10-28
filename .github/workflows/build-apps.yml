@@ -14,8 +14,6 @@ jobs:
         include:
           - os: macos-latest      # Apple Silicon
             artifact: GlamCam-macOS-AppleSilicon
-          - os: macos-15-intel
-            artifact: GlamCam-macOS-Intel
           - os: windows-latest
             artifact: GlamCam-Windows
     runs-on: ${{ matrix.os }}

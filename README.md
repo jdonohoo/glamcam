@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20%26%20Intel-ff5fd2?style=for-the-badge&labelColor=1b0b3a" alt="macOS">
+  <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-ff5fd2?style=for-the-badge&labelColor=1b0b3a" alt="macOS">
   <img src="https://img.shields.io/badge/Windows-10%20%26%2011-00f0ff?style=for-the-badge&labelColor=1b0b3a" alt="Windows">
   <img src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-7d56f4?style=for-the-badge&labelColor=1b0b3a" alt="Python 3.10-3.13">
   <img src="https://img.shields.io/badge/hair-yes-ffe95a?style=for-the-badge&labelColor=1b0b3a" alt="hair: yes">
