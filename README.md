@@ -58,6 +58,34 @@ Press **`n`** while it's running to cycle through them.
 
 ---
 
+## 📦 The GlamCam app (no terminal required)
+
+Prefer double-clicking? There's a real **GlamCam.app** (macOS) and **GlamCam.exe** (Windows). The app opens straight into a clean output window called **GlamCam** that OBS can grab ([see OBS](#-using-it-inside-obs-streaming--recording)). Close the window to quit.
+
+**Get it:**
+
+- **Build it yourself** (easiest on the Mac you're on). After cloning, run `./build_app.sh` (macOS) or `build_app.bat` (Windows). You get `dist/GlamCam.app`, which you drag to **Applications**, or `dist\GlamCam\GlamCam.exe` on Windows (keep the exe inside its folder and make a shortcut to it).
+- **Download it**: every push builds both apps on GitHub's Mac and Windows machines (the **Actions** tab → latest **Build apps** run → **Artifacts**). Tagged versions also get attached to **Releases**.
+
+**First launch:**
+
+- **macOS, downloaded app**: it isn't signed by Apple, so macOS will refuse to open it the first time. Go to **System Settings → Privacy & Security** and click **Open Anyway**, or run `xattr -dr com.apple.quarantine /Applications/GlamCam.app`. (An app you built yourself skips this.) Then allow the camera when asked. GlamCam now gets its *own* row in the Camera list, separate from Terminal.
+- **Windows**: SmartScreen may say "Windows protected your PC". Click **More info → Run anyway**.
+
+**Where your stuff lives:** wigs you make and saved fits go in `~/Library/Application Support/GlamCam` (macOS) or `%APPDATA%\GlamCam` (Windows), so they survive app updates. To make a wig with the app:
+
+```bash
+/Applications/GlamCam.app/Contents/MacOS/GlamCam --make-wig ~/Pictures/kevin.jpg --name Kevin
+```
+
+```powershell
+.\GlamCam.exe --make-wig C:\Users\you\Pictures\kevin.jpg --name Kevin
+```
+
+Want the app to send to the OBS Virtual Camera directly (no OBS window step), like `run.sh` does? Launch it with `--vcam`.
+
+---
+
 ## 🍎 Install on macOS
 
 Works on Apple Silicon (M1–M4, Mac Studio, etc.) and Intel Macs. Takes about 5 minutes, 4 of which are downloads.
@@ -179,6 +207,7 @@ Click the preview window first, then:
 | `b` | Background blur off / on |
 | `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |
 | `p` | Save this wig's fit (remembered in `fit.json`) |
+| `?` | Show the keys on screen |
 | `q` / `Esc` | Quit, return to your natural, disappointing hair |
 
 The preview is mirrored like a mirror. Meet gets the un-mirrored version, the same way it handles a normal camera.
@@ -223,12 +252,16 @@ Want to add a wig for everyone? Put `name.png` + `name.json` in `wigs/` and open
 
 ## 🎬 Using it inside OBS (streaming / recording)
 
-GlamCam *is* the OBS Virtual Camera's video while it runs, so OBS can't also pick it up as a camera. On macOS it hides its own virtual camera from its camera list. Capture the window instead:
+While `run.sh` is running, GlamCam *is* the OBS Virtual Camera's video, so OBS can't also pick it up as a camera (on macOS it even hides its own virtual camera from its camera list). Instead, give OBS the GlamCam window and let OBS run the virtual camera:
 
-1. Start GlamCam with a clean output window: `./run.sh --obs-window` (Windows: `.\run.bat --obs-window`). That window isn't mirrored and has no text on top.
-2. In OBS, add a source: **macOS Screen Capture → Method: Window Capture → "GlamCam output"** (Windows: **Window Capture → GlamCam output**).
+1. Start GlamCam in OBS mode: open **GlamCam.app / GlamCam.exe**, or `./run.sh --obs-window` (Windows: `.\run.bat --obs-window`). You get a window called **GlamCam**, un-mirrored, with no text on top.
+2. Add it to OBS:
+   - **macOS**: Sources **+** → **Deprecated** → **Window Capture** → window **[GlamCam] GlamCam** (from source it's listed under **[python]**). Use this older source on purpose. The newer *macOS Screen Capture* forgets the window every time GlamCam restarts, and the old one finds it again by name.
+   - **Windows**: Sources **+** → **Window Capture** → **[GlamCam.exe]: GlamCam** (or **[python.exe]** from source), and set **Window Match Priority** to **Window title must match**.
 3. If the title bar shows, hold ⌥ (Alt on Windows) and drag the top edge of the source down to crop it off.
-4. Now OBS can **Start Virtual Camera** itself, with scenes, overlays and everything else.
+4. Click **Start Virtual Camera** in OBS and pick **OBS Virtual Camera** in Meet. Scenes, overlays and all the OBS goodness come along for free.
+
+Because the window is always called **GlamCam**, you can quit and relaunch GlamCam and OBS picks it right back up.
 
 To check the virtual camera without opening Meet: **QuickTime Player → File → New Movie Recording**, click the ⌄ next to the record button, and choose **OBS Virtual Camera**.
 
@@ -245,7 +278,8 @@ To check the virtual camera without opening Meet: **QuickTime Player → File �
 | `--no-blur` | Start with background blur off |
 | `--match-lighting` | Start with lighting match on |
 | `--no-vcam` | Preview only, don't send to the virtual camera |
-| `--obs-window` | Clean, un-mirrored output window for OBS window capture (skips the virtual camera) |
+| `--obs-window` | Clean, un-mirrored output window for OBS window capture (skips the virtual camera). The app does this by default |
+| `--vcam` | App only: send to the OBS Virtual Camera directly instead |
 | `--download-models` | Re-download the AI models |
 
 ## 🩹 Troubleshooting
@@ -260,7 +294,7 @@ Install OBS, click **Start Virtual Camera** once, then stop it and quit OBS. If 
 OBS is probably still running its virtual camera. Quit OBS, then restart GlamCam.
 
 **GlamCam doesn't show up as a camera inside OBS**
-That's expected: GlamCam is sending to OBS's own virtual camera, which OBS hides from its own camera list. Use `--obs-window` and Window Capture ([see above](#-using-it-inside-obs-streaming--recording)).
+That's expected: GlamCam is sending to OBS's own virtual camera, which OBS hides from its own camera list. Use the app (or `--obs-window`) and Window Capture ([see above](#-using-it-inside-obs-streaming--recording)).
 
 **"OBS Virtual Camera" isn't in Meet's camera list**
 Fully quit the browser (on Mac, ⌘Q, not just closing the window) and reopen it.

@@ -1,5 +1,4 @@
-mediapipe
-opencv-python
+mediapipe  # brings opencv-contrib-python, matplotlib and friends
 numpy
 pyvirtualcam
 certifi

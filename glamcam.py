@@ -9,7 +9,7 @@ Keys (click the preview window first):
   w/a/s/d  nudge the wig up/left/down/right     - / =  shrink / grow
   n        next wig                              h      wig on/off
   b        background blur on/off                l      lighting match on/off
-  p        save the wig fit
+  p        save the wig fit                      ?      show these keys
   q/Esc    quit
 """
 import argparse
@@ -28,9 +28,24 @@ import numpy as np
 from mediapipe.tasks.python import BaseOptions, vision
 
 HERE = Path(__file__).resolve().parent
-MODEL_DIR = HERE / "models"
-WIG_DIRS = [HERE / "wigs", HERE / "my-wigs"]
-FIT_FILE = HERE / "fit.json"
+# Packaged as GlamCam.app / GlamCam.exe: models and built-in wigs ship inside the (read-only)
+# bundle, and your own wigs + saved fits live in a per-user folder instead of the repo.
+FROZEN = getattr(sys, "frozen", False)
+if FROZEN:
+    BUNDLE = Path(getattr(sys, "_MEIPASS", HERE))
+    if sys.platform == "darwin":
+        USER_DIR = Path.home() / "Library" / "Application Support" / "GlamCam"
+    elif sys.platform == "win32":
+        USER_DIR = Path(os.environ.get("APPDATA", Path.home())) / "GlamCam"
+    else:
+        USER_DIR = Path.home() / ".glamcam"
+    USER_DIR.mkdir(parents=True, exist_ok=True)
+else:
+    BUNDLE = USER_DIR = HERE
+MODEL_DIR = BUNDLE / "models"
+WIG_DIRS = [BUNDLE / "wigs", USER_DIR / "my-wigs"]
+FIT_FILE = USER_DIR / "fit.json"
+WINDOW = "GlamCam"  # never changes, so OBS Window Capture finds it again after a restart
 
 _MODEL_BASE = "https://storage.googleapis.com/mediapipe-models"
 MODELS = {
@@ -75,8 +90,13 @@ def download_models(names=MODELS):
 @contextlib.contextmanager
 def quiet_native_logs():
     """MediaPipe's C++ side prints a wall of INFO/WARNING lines at startup; mute fd 2 meanwhile."""
-    sys.stderr.flush()
-    saved = os.dup(2)
+    try:
+        if sys.stderr:
+            sys.stderr.flush()
+        saved = os.dup(2)
+    except OSError:  # windowed app with no stderr: nothing to mute
+        yield
+        return
     devnull = os.open(os.devnull, os.O_WRONLY)
     os.dup2(devnull, 2)
     try:
@@ -147,7 +167,7 @@ def load_wigs():
     return wigs
 
 
-def make_wig(photo, name, out_dir=HERE / "my-wigs"):
+def make_wig(photo, name, out_dir=USER_DIR / "my-wigs"):
     """Cut the hair out of a photo and save it as a wig (PNG + anchor JSON)."""
     bgr = cv2.imread(str(photo))
     if bgr is None:
@@ -365,9 +385,52 @@ def open_virtual_camera(w, h, fps):
     return cam
 
 
-def draw_hud(img, text):
-    cv2.putText(img, text, (16, 34), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 4, cv2.LINE_AA)
-    cv2.putText(img, text, (16, 34), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (210, 95, 255), 2, cv2.LINE_AA)
+def draw_hud(img, text, y=34):
+    cv2.putText(img, text, (16, y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 4, cv2.LINE_AA)
+    cv2.putText(img, text, (16, y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (210, 95, 255), 2, cv2.LINE_AA)
+
+
+HELP = [("w a s d", "move wig"), ("- =", "shrink / grow"), ("n", "next wig"), ("h", "wig on/off"),
+        ("b", "background blur"), ("l", "lighting match"), ("p", "save wig fit"), ("q", "quit")]
+
+
+def draw_help(img):
+    for i, (key, what) in enumerate(HELP):
+        y = 34 + 30 * i
+        for x, txt in ((16, key), (130, what)):
+            cv2.putText(img, txt, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 0), 5, cv2.LINE_AA)
+            cv2.putText(img, txt, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (210, 95, 255), 2, cv2.LINE_AA)
+
+
+def window_closed(state):
+    """True once the user clicks the window's close button. Some backends can't report
+    visibility (they return -1), so only trust it after it has reported visible once."""
+    try:
+        visible = cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE)
+    except cv2.error:
+        visible = -1
+    if visible >= 1:
+        state["seen"] = True
+    return state.get("seen", False) and visible < 1
+
+
+def show_message(text):
+    """In the packaged app there is no terminal, so errors and results get a window of their own."""
+    import textwrap
+    lines = []
+    for para in str(text).splitlines() or [""]:
+        lines += textwrap.wrap(para, 78) or [""]
+    img = np.full((80 + 30 * len(lines), 1000, 3), (40, 16, 27), np.uint8)
+    for i, ln in enumerate(lines):
+        cv2.putText(img, ln, (24, 44 + 30 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.62, (245, 230, 255), 1, cv2.LINE_AA)
+    cv2.putText(img, "press any key to close", (24, img.shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.55,
+                (210, 95, 255), 1, cv2.LINE_AA)
+    state = {}
+    while True:
+        cv2.imshow(WINDOW, img)
+        if cv2.waitKey(100) != -1 or window_closed(state):
+            break
+    cv2.destroyAllWindows()
 
 
 def run(args):
@@ -388,9 +451,12 @@ def run(args):
     cam = None if args.no_vcam or args.obs_window else open_virtual_camera(w, h, args.fps)
 
     print("Keys" + __doc__.split("Keys", 1)[1])
+    print(f"Window: '{WINDOW}'" + ("  (clean output for OBS Window Capture)" if args.obs_window else ""))
     keys = {ord("w"): (0, -4, 1), ord("s"): (0, 4, 1), ord("a"): (-4, 0, 1), ord("d"): (4, 0, 1),
             ord("-"): (0, 0, 1 / 1.03), ord("="): (0, 0, 1.03), ord("+"): (0, 0, 1.03)}
-    t0, last_ts, hud_until = time.monotonic(), -1, time.monotonic() + 4
+    t0, last_ts = time.monotonic(), -1
+    hud_until = 0 if args.obs_window else time.monotonic() + 4
+    help_until, win_state = 0, {}
     try:
         while ok:
             ts = max(int((time.monotonic() - t0) * 1000), last_ts + 1)  # must strictly increase
@@ -398,24 +464,28 @@ def run(args):
             out = renderer.process(frame, ts)
             if cam:
                 cam.send(out)
-            if args.obs_window:  # clean, un-mirrored frames for OBS window capture
-                cv2.imshow("GlamCam output", out)
-            else:
-                preview = cv2.flip(out, 1)
-                if time.monotonic() < hud_until:
-                    draw_hud(preview, f"{renderer.wig.name}  (n = next wig)")
-                cv2.imshow("GlamCam preview (mirrored, Meet sees it un-mirrored)", preview)
+            # OBS mode: clean, un-mirrored frames. Otherwise a mirrored preview, like a selfie cam.
+            view = out.copy() if args.obs_window else cv2.flip(out, 1)
+            now = time.monotonic()
+            if now < help_until:
+                draw_help(view)
+            elif now < hud_until:
+                draw_hud(view, f"{renderer.wig.name}  (n = next wig, ? = keys)")
+            cv2.imshow(WINDOW, view)
 
             k = cv2.waitKey(1) & 0xFF
-            if k in (ord("q"), 27):
+            if k in (ord("q"), 27) or window_closed(win_state):
                 break
+            if k in (ord("?"), ord("/")):
+                help_until = 0 if now < help_until else now + 6
             if k in keys:
                 dx, dy, sc = keys[k]
                 renderer.nudge(dx if args.obs_window else -dx, dy, sc)  # mirrored preview flips left/right
             elif k == ord("n"):
                 current = (current + 1) % len(wigs)
                 renderer.set_wig(wigs[current])
-                hud_until = time.monotonic() + 2
+                if not args.obs_window:
+                    hud_until = time.monotonic() + 2
             elif k == ord("b"):
                 renderer.blur = not renderer.blur
             elif k == ord("l"):
@@ -425,7 +495,8 @@ def run(args):
             elif k == ord("p"):
                 renderer.save_fits()
                 print(f"Saved fit for {renderer.wig.name}")
-                hud_until = time.monotonic() + 1
+                if not args.obs_window:
+                    hud_until = time.monotonic() + 1
             ok, frame = cap.read()
             if not ok and args.input:  # loop test videos
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -436,6 +507,19 @@ def run(args):
             cam.close()
         renderer.close()
         cv2.destroyAllWindows()
+
+
+def self_test():
+    """Load everything and push a few frames through; used by the build to check the packaged app."""
+    wigs = load_wigs()
+    if not wigs:
+        raise RuntimeError("no wigs bundled")
+    r = GlamRenderer(wigs[0], relight=True)
+    frame = np.full((720, 1280, 3), 128, np.uint8)
+    for k in range(3):
+        r.process(frame, k * 33 + 1)
+    r.close()
+    print(f"self-test ok: {len(wigs)} wigs, models from {MODEL_DIR}")
 
 
 def main():
@@ -455,10 +539,23 @@ def main():
     ap.add_argument("--smooth", type=float, default=0.5, help="0 = raw tracking, 0.9 = very smooth/laggy")
     ap.add_argument("--no-vcam", action="store_true", help="preview only, don't send to the virtual camera")
     ap.add_argument("--obs-window", action="store_true",
-                    help="un-mirrored window with no overlay text, for OBS window capture (implies --no-vcam)")
-    args = ap.parse_args()
+                    help="un-mirrored window with no overlay text, for OBS window capture (implies --no-vcam)"
+                         " [default for the packaged app]")
+    ap.add_argument("--vcam", action="store_true",
+                    help="packaged app: send straight to the OBS Virtual Camera instead of the OBS window")
+    ap.add_argument("--self-test", action="store_true", help=argparse.SUPPRESS)
+    # macOS passes -psn_* when an app is double-clicked on some versions; ignore unknown args
+    args, _ = ap.parse_known_args()
+    if FROZEN and not args.vcam:
+        args.obs_window = True
 
-    if args.download_models:
+    if args.self_test:
+        try:
+            self_test()
+        except Exception as e:  # no dialogs: this runs unattended in CI
+            print(f"self-test FAILED: {e!r}")
+            sys.exit(1)
+    elif args.download_models:
         download_models()
         print("Models ready.")
     elif args.list_wigs:
@@ -467,9 +564,17 @@ def main():
     elif args.make_wig:
         with quiet_native_logs():
             png = make_wig(args.make_wig, args.name or Path(args.make_wig).stem)
-        print(f"New wig saved: {png}\nTry it on:  --wig {png.stem}")
+        msg = f"New wig saved: {png}\nTry it on:  --wig {png.stem}"
+        print(msg)
+        if FROZEN:
+            show_message(msg)
     else:
-        run(args)
+        try:
+            run(args)
+        except SystemExit as e:
+            if FROZEN and isinstance(e.code, str):  # no terminal to read it in: show it in the window
+                show_message(e.code)
+            raise
 
 
 if __name__ == "__main__":

@@ -1,0 +1,63 @@
+name: Build apps
+
+on:
+  push:
+    branches: [master, glamcam-v1]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest      # Apple Silicon
+            artifact: GlamCam-macOS
+          - os: windows-latest
+            artifact: GlamCam-Windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+          python glamcam.py --download-models
+      - name: Build
+        run: python -m PyInstaller --noconfirm --log-level WARN glamcam.spec
+
+      - name: Self-test and zip (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          dist/GlamCam.app/Contents/MacOS/GlamCam --self-test
+          ditto -c -k --keepParent dist/GlamCam.app ${{ matrix.artifact }}.zip
+      - name: Self-test and zip (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\GlamCam\GlamCam.exe -ArgumentList '--self-test' -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
+          Compress-Archive -Path dist\GlamCam -DestinationPath ${{ matrix.artifact }}.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: "*.zip"
