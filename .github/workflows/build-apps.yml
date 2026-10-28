@@ -13,7 +13,9 @@ jobs:
       matrix:
         include:
           - os: macos-latest      # Apple Silicon
-            artifact: GlamCam-macOS
+            artifact: GlamCam-macOS-AppleSilicon
+          - os: macos-15-intel
+            artifact: GlamCam-macOS-Intel
           - os: windows-latest
             artifact: GlamCam-Windows
     runs-on: ${{ matrix.os }}
@@ -55,9 +57,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
+          path: dl
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          files: "*.zip"
+          name: GlamCam ${{ github.ref_name }}
+          body_path: .github/release-notes.md
+          files: dl/*.zip
