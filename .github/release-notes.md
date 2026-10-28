@@ -7,6 +7,10 @@
 
 The Mac app is Apple Silicon only. Intel Macs can [run from source](https://github.com/jdonohoo/glamcam#step-2b--run-from-source).
 
+## In the wig closet
+
+Glaaron · 🎩 **Top Hat** (new) · **Glaaron Magnifique** (Glaaron + top hat, new) · Disco Inferno · Synthwave Mullet · Cyber Mohawk · The Executive. Press **n** to cycle.
+
 ## First launch
 
 - **macOS:** unzip, drag **GlamCam.app** into **Applications**, double-click. The app isn't signed by Apple, so macOS blocks the first open. Go to **System Settings → Privacy & Security → Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/GlamCam.app`). Allow the camera when asked.

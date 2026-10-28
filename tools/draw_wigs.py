@@ -11,11 +11,14 @@ import colorsys
 import json
 import math
 import random
+import sys
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-WIGS = Path(__file__).resolve().parent.parent / "wigs"
+REPO = Path(__file__).resolve().parent.parent
+WIGS = REPO / "wigs"
 
 # face-mesh landmark id -> (x, y), symmetric and level
 CANON = {
@@ -24,8 +27,8 @@ CANON = {
     133: (-47.4, 23.0), 362: (47.4, 23.0), 127: (-191.1, 22.8), 356: (191.1, 22.8),
     234: (-192.9, 64.8), 454: (192.9, 64.8),
 }
-W, H = 1000, 1150
-OX, OY = 500, 560  # where the canonical (0, 0) sits on the canvas
+W, H = 1000, 1500
+OX, OY = 500, 900  # where the canonical (0, 0) sits on the canvas (tall hats need headroom)
 SS = 2  # supersampling for smooth edges
 
 
@@ -77,13 +80,16 @@ def face_hole(top=-112, extra=0):
     return m.filter(ImageFilter.GaussianBlur(3 * SS))
 
 
-def finish(img, wig_id, name, hole=None, glow=14, glow_strength=1.0):
+def finish(img, wig_id, name, order, hole=None, glow=14, glow_strength=1.0, under=None):
+    """Add the neon glow, cut the face hole, crop, save. `under` is composited beneath without glow."""
     if hole is not None:
         img.putalpha(ImageChops.multiply(img.getchannel("A"), ImageChops.invert(hole)))
     halo = img.filter(ImageFilter.GaussianBlur(glow * SS))
     if glow_strength != 1.0:
         halo.putalpha(halo.getchannel("A").point(lambda v: min(255, int(v * glow_strength))))
     out = Image.alpha_composite(halo, img)
+    if under is not None:
+        out = Image.alpha_composite(under, out)
     if hole is not None:  # the halo shouldn't fog up your face either
         out.putalpha(ImageChops.multiply(out.getchannel("A"), ImageChops.invert(hole)))
     out = out.resize((W, H), Image.LANCZOS)
@@ -94,7 +100,7 @@ def finish(img, wig_id, name, hole=None, glow=14, glow_strength=1.0):
     out = out.crop(box)
     out.save(WIGS / f"{wig_id}.png", optimize=True)
     anchors = {str(k): [round(x + OX - box[0], 1), round(y + OY - box[1], 1)] for k, (x, y) in CANON.items()}
-    (WIGS / f"{wig_id}.json").write_text(json.dumps({"name": name, "landmarks": anchors}, indent=1))
+    (WIGS / f"{wig_id}.json").write_text(json.dumps({"name": name, "order": order, "landmarks": anchors}, indent=1))
     print(f"wigs/{wig_id}.png  {out.size}")
 
 
@@ -126,7 +132,7 @@ def disco_inferno():
     for i in range(6):
         x = 215 + i * 21
         d.rounded_rectangle([*P(x, -495), *P(x + 9, -395)], radius=4 * SS, fill=(255, 245, 120, 255))
-    finish(img, "disco-inferno", "Disco Inferno", face_hole(), glow=16)
+    finish(img, "disco-inferno", "Disco Inferno", 10, face_hole(), glow=16)
 
 
 def synthwave_mullet():
@@ -155,7 +161,7 @@ def synthwave_mullet():
         ey = -60 - 245 * math.sqrt(max(0.0, 1 - (ex / 250) ** 2))  # ends follow the dome
         strand(d, [(x, y), (x * 1.02, y - 90), (ex * 1.3, ey + 30), (ex, ey)],
                rnd.uniform(10, 15), [pink, (255, 120, 230, 255), violet])
-    finish(img, "synthwave-mullet", "Synthwave Mullet", face_hole(), glow=14)
+    finish(img, "synthwave-mullet", "Synthwave Mullet", 11, face_hole(), glow=14)
 
 
 def cyber_mohawk():
@@ -172,7 +178,7 @@ def cyber_mohawk():
         hue = 0.33 + 0.17 * i / (n - 1)
         d.polygon([P(base[0] - perp[0], base[1] - perp[1]), P(*tip), P(base[0] + perp[0], base[1] + perp[1])],
                   fill=neon(hue, 0.9, 0.55), outline=neon(hue, 0.6, 1.0), width=int(5 * SS))
-    finish(img, "cyber-mohawk", "Cyber Mohawk", face_hole(), glow=20, glow_strength=1.3)
+    finish(img, "cyber-mohawk", "Cyber Mohawk", 12, face_hole(), glow=20, glow_strength=1.3)
 
 
 def the_executive():
@@ -186,7 +192,79 @@ def the_executive():
                11, [amber, gold, gold])
     # the lone rebel that never stays down
     strand(d, [(-30, -255), (-20, -360), (60, -390), (45, -330)], 9, [gold, gold])
-    finish(img, "the-executive", "The Executive", face_hole(top=-150), glow=10)
+    finish(img, "the-executive", "The Executive", 13, face_hole(top=-150), glow=10)
+
+
+def ellipse_poly(cx, cy, rx, ry, angle=0.0, n=60):
+    """Rotated ellipse as polygon points (canvas coords)."""
+    ca, sa = math.cos(math.radians(angle)), math.sin(math.radians(angle))
+    pts = []
+    for i in range(n):
+        t = 2 * math.pi * i / n
+        x, y = rx * math.cos(t), ry * math.sin(t)
+        pts.append(P(cx + x * ca - y * sa, cy + x * sa + y * ca))
+    return pts
+
+
+def sparkle(d, x, y, r, color):
+    d.polygon([P(x, y - r), P(x + r * 0.22, y - r * 0.22), P(x + r, y), P(x + r * 0.22, y + r * 0.22),
+               P(x, y + r), P(x - r * 0.22, y + r * 0.22), P(x - r, y), P(x - r * 0.22, y - r * 0.22)], fill=color)
+
+
+def draw_top_hat(d):
+    """A neon magician's top hat, worn low on the forehead. A rabbit is involved."""
+    pink, cyan, gold = (255, 95, 210, 255), (0, 240, 255, 255), (255, 233, 90, 255)
+    ink, ink2, sheen = (26, 10, 50, 255), (44, 18, 80, 255), (78, 36, 130, 255)
+    ow = int(6 * SS)
+    brim_y, top_y, bw, cw0, cw1 = -150, -575, 335, 212, 228  # brim height, crown top, half-widths
+    # back half of the brim
+    d.ellipse([*P(-bw, brim_y - 58), *P(bw, brim_y + 58)], fill=ink, outline=pink, width=ow)
+    # the rabbit, emerging from the hat (drawn before the rim so the rim hides its feet)
+    for side, ang in ((-1, -14), (1, 11)):
+        cx = side * 60
+        d.polygon(ellipse_poly(cx, top_y - 110, 40, 125, ang), fill=(250, 245, 255, 255))
+        d.polygon(ellipse_poly(cx, top_y - 105, 19, 92, ang), fill=(255, 150, 210, 255))
+    # crown, slightly flared like a proper stage hat, with a bit of shine
+    d.polygon([P(-cw0, brim_y - 10), P(-cw1, top_y), P(cw1, top_y), P(cw0, brim_y - 10)], fill=ink2)
+    d.polygon([P(-150, brim_y - 10), P(-160, top_y), P(-105, top_y), P(-98, brim_y - 10)], fill=sheen)
+    d.line([P(-cw0, brim_y - 10), P(-cw1, top_y)], fill=pink, width=ow)
+    d.line([P(cw0, brim_y - 10), P(cw1, top_y)], fill=pink, width=ow)
+    # glowing band with a star buckle
+    d.polygon([P(-cw0 - 1, brim_y - 24), P(-cw0 - 6, brim_y - 95), P(cw0 + 6, brim_y - 95), P(cw0 + 1, brim_y - 24)],
+              fill=cyan)
+    sparkle(d, 0, brim_y - 60, 44, gold)
+    # crown top: the opening, then the front rim over the rabbit's feet
+    d.ellipse([*P(-cw1, top_y - 44), *P(cw1, top_y + 44)], outline=pink, width=ow)
+    d.chord([*P(-cw1, top_y - 44), *P(cw1, top_y + 44)], 0, 180, fill=ink2, outline=pink, width=ow)
+    # front half of the brim, in front of the crown
+    d.chord([*P(-bw, brim_y - 58), *P(bw, brim_y + 58)], 0, 180, fill=ink, outline=pink, width=ow)
+    # stage magic
+    for x, y, r, c in ((-330, -500, 36, gold), (310, -420, 26, cyan), (-300, -270, 18, pink), (330, -640, 24, gold)):
+        sparkle(d, x, y, r, c)
+
+
+def top_hat():
+    """Ta-da."""
+    img = canvas()
+    draw_top_hat(ImageDraw.Draw(img))
+    finish(img, "top-hat", "Top Hat", 2, glow=14)
+
+
+def glaaron_magnifique():
+    """Glaaron's hair, crowned. For galas, award shows, and Tuesday standups."""
+    sys.path.insert(0, str(REPO))
+    from glamcam import similarity_transform
+
+    meta = json.loads((WIGS / "glaaron.json").read_text())
+    src = np.array([meta["landmarks"][str(k)] for k in CANON])
+    dst = np.array([P(*CANON[k]) for k in CANON])
+    m = np.vstack([similarity_transform(src, dst), [0, 0, 1]])
+    inv = np.linalg.inv(m)[:2].flatten()
+    hair = Image.open(WIGS / "glaaron.png").convert("RGBA")
+    hair = hair.transform((W * SS, H * SS), Image.AFFINE, tuple(inv), Image.BICUBIC)
+    img = canvas()
+    draw_top_hat(ImageDraw.Draw(img))
+    finish(img, "glaaron-magnifique", "Glaaron Magnifique", 3, glow=14, under=hair)
 
 
 if __name__ == "__main__":
@@ -195,3 +273,5 @@ if __name__ == "__main__":
     synthwave_mullet()
     cyber_mohawk()
     the_executive()
+    top_hat()
+    glaaron_magnifique()

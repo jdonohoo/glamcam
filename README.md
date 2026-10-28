@@ -24,7 +24,7 @@ You know that one coworker with *the hair*? Flowing. Luminous. Shampoo-commercia
 
 It finds your face 30 times a second, glues a wig to your forehead (it follows you when you lean, tilt, nod, or dramatically turn away from a bad idea), blurs the pile of laundry behind you, and pipes the whole thing into Google Meet, Zoom, or Teams as a normal-looking camera.
 
-Ships with **Glaaron**, the hair that started it all, plus four neon wigs nobody asked for. Or [make your own](#-make-your-own-wig) from any photo.
+Ships with **Glaaron**, the hair that started it all, a **neon magician's top hat** (with rabbit), Glaaron *wearing* the top hat, and four neon wigs nobody asked for. Or [make your own](#-make-your-own-wig) from any photo.
 
 | | |
 |---|---|
@@ -44,17 +44,21 @@ Ships with **Glaaron**, the hair that started it all, plus four neon wigs nobody
 
 ## The Wig Closet
 
-<p align="center"><img src="assets/closet.png" alt="Five wigs on a cartoon mascot: Glaaron, Disco Inferno, Synthwave Mullet, Cyber Mohawk, The Executive, plus a slot for your own"></p>
+<p align="center"><img src="assets/closet.png" alt="Seven wigs on a cartoon mascot: Glaaron, Top Hat, Glaaron Magnifique, Disco Inferno, Synthwave Mullet, Cyber Mohawk, The Executive, plus a slot for your own"></p>
 
 | Wig | `--wig` | Vibe |
 |---|---|---|
 | Glaaron | `glaaron` | The original. The legend. Default. |
+| Top Hat | `top-hat` | A neon magician's top hat. There is a rabbit. Company-event approved. |
+| Glaaron Magnifique | `glaaron-magnifique` | Glaaron, but wearing the top hat. Black tie optional, hair mandatory. |
 | Disco Inferno | `disco-inferno` | Has a comb in it. The comb lives there now. |
 | Synthwave Mullet | `synthwave-mullet` | Business in the front, Miami Vice in the back. |
 | Cyber Mohawk | `cyber-mohawk` | Do not attempt doorways. |
 | The Executive | `the-executive` | Nine hairs. One dream. |
 
-Press **`n`** while it's running to cycle through them.
+Press **`n`** while it's running to cycle through them, in this order: one press from Glaaron gets you the top hat.
+
+> 🎩 **Tall hat tip:** the top hat (and the mohawk) go well above your head. If the top gets cut off, sit a little further back or press `-` to shrink it, then `p` to save.
 
 ---
 

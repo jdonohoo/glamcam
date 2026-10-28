@@ -132,6 +132,7 @@ class Wig:
         self.id = png_path.stem
         meta = json.loads(png_path.with_suffix(".json").read_text())
         self.name = meta.get("name", self.id)
+        self.order = meta.get("order", 1000)  # built-in wigs set this; yours sort after, alphabetically
         self.image = cv2.imread(str(png_path), cv2.IMREAD_UNCHANGED)
         if self.image is None or self.image.ndim != 3 or self.image.shape[2] != 4:
             raise ValueError(f"{png_path} is not a transparent PNG")
@@ -164,7 +165,7 @@ def load_wigs():
                 wigs.append(Wig(png))
             except (ValueError, KeyError, json.JSONDecodeError) as e:
                 print(f"Skipping {png.name}: {e}")
-    return wigs
+    return sorted(wigs, key=lambda wg: wg.order)  # stable: ties keep folder + name order
 
 
 def make_wig(photo, name, out_dir=USER_DIR / "my-wigs"):
