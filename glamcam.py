@@ -8,7 +8,8 @@ the OBS Virtual Camera so Google Meet / Zoom / Teams can use it.
 Keys (click the preview window first):
   w/a/s/d  nudge the wig up/left/down/right     - / =  shrink / grow
   n        next wig                              h      wig on/off
-  b        background blur on/off                p      save the wig fit
+  b        background blur on/off                l      lighting match on/off
+  p        save the wig fit
   q/Esc    quit
 """
 import argparse
@@ -116,6 +117,21 @@ class Wig:
             raise ValueError(f"{png_path} is not a transparent PNG")
         self.idx = [int(k) for k in meta["landmarks"]]
         self.ref = np.array(list(meta["landmarks"].values()), dtype=np.float64)
+        # brightness of the skin in the source photo; drawn (neon) wigs have none and keep their glow
+        self.skin_luma = meta.get("skin_luma")
+
+
+def skin_luma(bgr, eye_r, eye_l):
+    """Median brightness of the cheeks-and-nose patch under the eyes (eye_r/eye_l = landmarks 33/263)."""
+    d = np.linalg.norm(eye_l - eye_r)
+    cx, cy = (eye_r + eye_l) / 2
+    x0, x1 = int(cx - 0.35 * d), int(cx + 0.35 * d)
+    y0, y1 = int(cy + 0.2 * d), int(cy + 0.55 * d)
+    h, w = bgr.shape[:2]
+    patch = bgr[max(y0, 0):min(y1, h), max(x0, 0):min(x1, w)]
+    if patch.size == 0:
+        return None
+    return float(np.median(cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)))
 
 
 def load_wigs():
@@ -176,18 +192,20 @@ def make_wig(photo, name, out_dir=HERE / "my-wigs"):
     png = out_dir / f"{wig_id}.png"
     cv2.imwrite(str(png), rgba)
     anchors = {str(i): [round(pts[i][0] - x0, 1), round(pts[i][1] - y0, 1)] for i in ANCHOR_IDS}
-    png.with_suffix(".json").write_text(json.dumps({"name": name, "landmarks": anchors}, indent=1))
+    meta = {"name": name, "landmarks": anchors, "skin_luma": round(skin_luma(bgr, pts[33], pts[263]), 1)}
+    png.with_suffix(".json").write_text(json.dumps(meta, indent=1))
     return png
 
 
 # ---------------------------------------------------------------- renderer
 
 class GlamRenderer:
-    def __init__(self, wig, blur=True, smooth=0.5):
+    def __init__(self, wig, blur=True, smooth=0.5, relight=False):
         self.fits = json.loads(FIT_FILE.read_text()) if FIT_FILE.exists() else {}
         self.set_wig(wig)
         self.blur = blur
         self.show_wig = True
+        self.relight = relight  # off by default: the photo-lit glow is half the joke
         self.smooth = smooth
         self.pts = None
         self.mask = None
@@ -211,6 +229,7 @@ class GlamRenderer:
     def set_wig(self, wig):
         self.wig = wig
         self.pts = None  # anchor sets differ between wigs
+        self.gain = None
         self.fit = self.fits.setdefault(wig.id, {"dx": 0.0, "dy": 0.0, "scale": 1.0})
 
     def save_fits(self):
@@ -237,6 +256,18 @@ class GlamRenderer:
         else:
             self.pts += (1 - self.smooth) * (pts - self.pts)
 
+    def _match_lighting(self, frame):
+        """Dim/brighten a photo wig so it's lit like your face instead of like the original photo."""
+        if not self.relight or self.wig.skin_luma is None or self.pts is None:
+            self.gain = None
+            return
+        i, j = self.wig.idx.index(33), self.wig.idx.index(263)
+        live = skin_luma(frame, self.pts[i], self.pts[j])
+        if live is None:
+            return
+        g = float(np.clip(live / max(self.wig.skin_luma, 1.0), 0.3, 1.3))
+        self.gain = g if self.gain is None else 0.9 * self.gain + 0.1 * g  # ease in, no flicker
+
     def _blur_background(self, frame, image, ts):
         res = self.segmenter.segment_for_video(image, ts)
         m = np.squeeze(res.confidence_masks[0].numpy_view()).astype(np.float32)
@@ -260,12 +291,16 @@ class GlamRenderer:
         warped = cv2.warpAffine(self.wig.image, m, (w, h), flags=cv2.INTER_LINEAR,
                                 borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
         a = warped[..., 3:].astype(np.float32) / 255
-        return (warped[..., :3] * a + frame * (1 - a)).astype(np.uint8)
+        rgb = warped[..., :3].astype(np.float32)
+        if self.gain is not None:
+            rgb = np.minimum(rgb * self.gain, 255)
+        return (rgb * a + frame * (1 - a)).astype(np.uint8)
 
     def process(self, frame, ts):
         h, w = frame.shape[:2]
         image = to_mp_image(frame)
         self._track(image, ts, w, h)
+        self._match_lighting(frame)
         out = self._blur_background(frame, image, ts) if self.blur else frame
         if self.show_wig and self.pts is not None:
             out = self._draw_wig(out)
@@ -349,7 +384,7 @@ def run(args):
         sys.exit("Camera opened but returned no frames.")
     h, w = frame.shape[:2]
 
-    renderer = GlamRenderer(wigs[current], blur=not args.no_blur, smooth=args.smooth)
+    renderer = GlamRenderer(wigs[current], blur=not args.no_blur, smooth=args.smooth, relight=args.match_lighting)
     cam = None if args.no_vcam else open_virtual_camera(w, h, args.fps)
 
     print("Keys" + __doc__.split("Keys", 1)[1])
@@ -380,6 +415,8 @@ def run(args):
                 hud_until = time.monotonic() + 2
             elif k == ord("b"):
                 renderer.blur = not renderer.blur
+            elif k == ord("l"):
+                renderer.relight = not renderer.relight
             elif k == ord("h"):
                 renderer.show_wig = not renderer.show_wig
             elif k == ord("p"):
@@ -411,6 +448,7 @@ def main():
     ap.add_argument("--height", type=int, default=720)
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--no-blur", action="store_true", help="start with background blur off")
+    ap.add_argument("--match-lighting", action="store_true", help="dim/brighten photo wigs to match your room")
     ap.add_argument("--smooth", type=float, default=0.5, help="0 = raw tracking, 0.9 = very smooth/laggy")
     ap.add_argument("--no-vcam", action="store_true", help="preview only, don't send to the virtual camera")
     args = ap.parse_args()
@@ -422,7 +460,8 @@ def main():
         for wg in load_wigs():
             print(f"  {wg.id:<20} {wg.name}")
     elif args.make_wig:
-        png = make_wig(args.make_wig, args.name or Path(args.make_wig).stem)
+        with quiet_native_logs():
+            png = make_wig(args.make_wig, args.name or Path(args.make_wig).stem)
         print(f"New wig saved: {png}\nTry it on:  --wig {png.stem}")
     else:
         run(args)

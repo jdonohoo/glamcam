@@ -177,6 +177,7 @@ Click the preview window first, then:
 | `n` | Next wig |
 | `h` | Wig off / on (for when your skip-level joins) |
 | `b` | Background blur off / on |
+| `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |
 | `p` | Save this wig's fit (remembered in `fit.json`) |
 | `q` / `Esc` | Quit, return to your natural, disappointing hair |
 
@@ -231,6 +232,7 @@ Want to add a wig for everyone? Put `name.png` + `name.json` in `wigs/` and open
 | `--width` / `--height` / `--fps` | Camera resolution (default 1280×720 @ 30) |
 | `--smooth 0.7` | Steadier wig, a bit more lag (0–0.9, default 0.5) |
 | `--no-blur` | Start with background blur off |
+| `--match-lighting` | Start with lighting match on |
 | `--no-vcam` | Preview only, don't send to the virtual camera |
 | `--download-models` | Re-download the AI models |
 
