@@ -385,7 +385,7 @@ def run(args):
     h, w = frame.shape[:2]
 
     renderer = GlamRenderer(wigs[current], blur=not args.no_blur, smooth=args.smooth, relight=args.match_lighting)
-    cam = None if args.no_vcam else open_virtual_camera(w, h, args.fps)
+    cam = None if args.no_vcam or args.obs_window else open_virtual_camera(w, h, args.fps)
 
     print("Keys" + __doc__.split("Keys", 1)[1])
     keys = {ord("w"): (0, -4, 1), ord("s"): (0, 4, 1), ord("a"): (-4, 0, 1), ord("d"): (4, 0, 1),
@@ -398,17 +398,20 @@ def run(args):
             out = renderer.process(frame, ts)
             if cam:
                 cam.send(out)
-            preview = cv2.flip(out, 1)
-            if time.monotonic() < hud_until:
-                draw_hud(preview, f"{renderer.wig.name}  (n = next wig)")
-            cv2.imshow("GlamCam preview (mirrored, Meet sees it un-mirrored)", preview)
+            if args.obs_window:  # clean, un-mirrored frames for OBS window capture
+                cv2.imshow("GlamCam output", out)
+            else:
+                preview = cv2.flip(out, 1)
+                if time.monotonic() < hud_until:
+                    draw_hud(preview, f"{renderer.wig.name}  (n = next wig)")
+                cv2.imshow("GlamCam preview (mirrored, Meet sees it un-mirrored)", preview)
 
             k = cv2.waitKey(1) & 0xFF
             if k in (ord("q"), 27):
                 break
             if k in keys:
                 dx, dy, sc = keys[k]
-                renderer.nudge(-dx, dy, sc)  # preview is mirrored, so flip left/right
+                renderer.nudge(dx if args.obs_window else -dx, dy, sc)  # mirrored preview flips left/right
             elif k == ord("n"):
                 current = (current + 1) % len(wigs)
                 renderer.set_wig(wigs[current])
@@ -451,6 +454,8 @@ def main():
     ap.add_argument("--match-lighting", action="store_true", help="dim/brighten photo wigs to match your room")
     ap.add_argument("--smooth", type=float, default=0.5, help="0 = raw tracking, 0.9 = very smooth/laggy")
     ap.add_argument("--no-vcam", action="store_true", help="preview only, don't send to the virtual camera")
+    ap.add_argument("--obs-window", action="store_true",
+                    help="un-mirrored window with no overlay text, for OBS window capture (implies --no-vcam)")
     args = ap.parse_args()
 
     if args.download_models:

@@ -221,6 +221,17 @@ Wigs you make go in **`my-wigs/`**, which is **git-ignored**, so you can't accid
 
 Want to add a wig for everyone? Put `name.png` + `name.json` in `wigs/` and open a PR. The neon wigs are drawn in code in [`tools/draw_wigs.py`](tools/draw_wigs.py), if you want to make more.
 
+## 🎬 Using it inside OBS (streaming / recording)
+
+GlamCam *is* the OBS Virtual Camera's video while it runs, so OBS can't also pick it up as a camera. On macOS it hides its own virtual camera from its camera list. Capture the window instead:
+
+1. Start GlamCam with a clean output window: `./run.sh --obs-window` (Windows: `.\run.bat --obs-window`). That window isn't mirrored and has no text on top.
+2. In OBS, add a source: **macOS Screen Capture → Method: Window Capture → "GlamCam output"** (Windows: **Window Capture → GlamCam output**).
+3. If the title bar shows, hold ⌥ (Alt on Windows) and drag the top edge of the source down to crop it off.
+4. Now OBS can **Start Virtual Camera** itself, with scenes, overlays and everything else.
+
+To check the virtual camera without opening Meet: **QuickTime Player → File → New Movie Recording**, click the ⌄ next to the record button, and choose **OBS Virtual Camera**.
+
 ## ⚙️ All the options
 
 | Option | Does |
@@ -234,6 +245,7 @@ Want to add a wig for everyone? Put `name.png` + `name.json` in `wigs/` and open
 | `--no-blur` | Start with background blur off |
 | `--match-lighting` | Start with lighting match on |
 | `--no-vcam` | Preview only, don't send to the virtual camera |
+| `--obs-window` | Clean, un-mirrored output window for OBS window capture (skips the virtual camera) |
 | `--download-models` | Re-download the AI models |
 
 ## 🩹 Troubleshooting
@@ -246,6 +258,9 @@ Install OBS, click **Start Virtual Camera** once, then stop it and quit OBS. If 
 
 **Meet shows a black screen or "camera in use"**
 OBS is probably still running its virtual camera. Quit OBS, then restart GlamCam.
+
+**GlamCam doesn't show up as a camera inside OBS**
+That's expected: GlamCam is sending to OBS's own virtual camera, which OBS hides from its own camera list. Use `--obs-window` and Window Capture ([see above](#-using-it-inside-obs-streaming--recording)).
 
 **"OBS Virtual Camera" isn't in Meet's camera list**
 Fully quit the browser (on Mac, ⌘Q, not just closing the window) and reopen it.
