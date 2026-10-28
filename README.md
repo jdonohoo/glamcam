@@ -216,7 +216,7 @@ Windows:
 
 Wigs you make go in **`my-wigs/`**, which is **git-ignored**, so you can't accidentally publish Kevin. Only the hair is kept: the face and background are blanked out of the file entirely, not just made transparent.
 
-> 💅 **Wig etiquette:** Hair is personal. Ask before you wear someone's. Glaaron is here with Aaron's full, enthusiastic blessing (Aaron asked when it ships).
+> 💅 **Wig etiquette:** Hair is personal. Ask before you wear someone's. Glaaron is here with Aaron's full, enthusiastic blessing. Aaron is reportedly very excited.
 
 Want to add a wig for everyone? Put `name.png` + `name.json` in `wigs/` and open a PR. The neon wigs are drawn in code in [`tools/draw_wigs.py`](tools/draw_wigs.py), if you want to make more.
 
