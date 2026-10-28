@@ -106,7 +106,7 @@ This makes a private `.venv`, installs everything, and downloads the face models
 ./run.sh
 ```
 
-The first time, macOS asks whether **Terminal** may use the camera. Say yes, then run `./run.sh` again.
+Run this from **Terminal** or **iTerm2** on the Mac itself, not over SSH or from an SSH app like Termius. macOS won't give those camera access. The first time, macOS asks whether your terminal may use the camera: click **Allow** and GlamCam carries on.
 
 > **Mac Studio / Mac mini / desktop Macs** have no built-in camera. If GlamCam grabs the wrong one (hi, iPhone Continuity Camera 👋), try `./run.sh --camera 1`, then `--camera 2`, and so on.
 
@@ -249,7 +249,7 @@ OBS is probably still running its virtual camera. Quit OBS, then restart GlamCam
 Fully quit the browser (on Mac, ⌘Q, not just closing the window) and reopen it.
 
 **Could not open camera**
-Try `--camera 1` (or 2, 3…), close other apps using the camera (Zoom, FaceTime, Photo Booth), and check camera permissions (macOS: **System Settings → Privacy & Security → Camera**; Windows: **Settings → Privacy & security → Camera**).
+On a Mac, run it from **Terminal** or **iTerm2** on the Mac itself. SSH sessions and SSH apps like Termius can't get camera permission (they never even show up in the Camera list). Make sure your terminal is switched on in **System Settings → Privacy & Security → Camera**, and if you just switched it on, quit the terminal (⌘Q) and reopen it. On Windows, check **Settings → Privacy & security → Camera**. Still stuck? Try `--camera 1` (or 2, 3…) and close other apps using the camera (Zoom, FaceTime, Photo Booth).
 
 **The wig jitters**
 `--smooth 0.7`. Good lighting on your face helps a lot too. Trackers love a ring light.

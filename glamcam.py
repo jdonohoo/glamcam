@@ -258,6 +258,14 @@ def open_capture(args):
         cap = cv2.VideoCapture(args.input)
     elif sys.platform == "darwin":
         cap = cv2.VideoCapture(args.camera, cv2.CAP_AVFOUNDATION)
+        if not cap.isOpened():
+            # first run: OpenCV fires the macOS permission pop-up and fails right away.
+            # Stay alive so the pop-up doesn't vanish, and retry once Allow is clicked.
+            print("Waiting for camera access. If macOS asks, click Allow. (Ctrl+C to give up)")
+            deadline = time.monotonic() + 30
+            while not cap.isOpened() and time.monotonic() < deadline:
+                time.sleep(1)
+                cap = cv2.VideoCapture(args.camera, cv2.CAP_AVFOUNDATION)
     elif sys.platform == "win32":
         cap = cv2.VideoCapture(args.camera, cv2.CAP_DSHOW)  # opens much faster than the MSMF default
         cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))  # needed for 720p30 on most USB cams
@@ -268,8 +276,14 @@ def open_capture(args):
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
         cap.set(cv2.CAP_PROP_FPS, args.fps)
     if not cap.isOpened():
-        hint = ("System Settings > Privacy & Security > Camera" if sys.platform == "darwin"
-                else "Settings > Privacy & security > Camera")
+        if sys.platform == "darwin" and not args.input:
+            sys.exit(f"Could not open camera {args.camera}.\n"
+                     "  - Run GlamCam from Terminal or iTerm2 on the Mac itself. SSH sessions and SSH apps\n"
+                     "    (Termius etc.) can't get camera permission and never show the pop-up.\n"
+                     "  - Your terminal app must be ON in System Settings > Privacy & Security > Camera.\n"
+                     "    If you just turned it on, quit the terminal app (Cmd+Q), reopen it, and try again.\n"
+                     f"  - Already allowed? Try --camera 1 (or 2); camera {args.camera} may be your iPhone or busy elsewhere.")
+        hint = "Settings > Privacy & security > Camera"
         sys.exit(f"Could not open camera {args.camera}. Try --camera 1 (or 2), close other apps "
                  f"using the camera, and check camera access in {hint}.")
     return cap
