@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# GlamCam
+models/
+my-wigs/
+fit.json
