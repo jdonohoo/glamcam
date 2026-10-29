@@ -1,6 +1,7 @@
 {
  "name": "Synthwave Mullet",
  "order": 11,
+ "kind": "wig",
  "landmarks": {
   "10": [
    408,

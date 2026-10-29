@@ -63,7 +63,9 @@ Ships with **Glaaron**, the hair that started it all, a **neon magician's top ha
 
 Press **`n`** while it's running to cycle through them, in this order: from Glaaron, one press gets you the top hat and three get you The Ultimate Glaaron.
 
-> 🥸 **Mustache tip:** mustaches are pinned to your upper face like the wigs, so they don't flap when you talk. If one sits a bit high or low on your lip, nudge it with `w`/`s` and press `p` to save.
+> 🥸 **Mustache tip:** press `m` to add a mustache to *whatever* you're wearing. Mustaches are pinned to your upper face like the wigs, so they don't flap when you talk. If one sits a bit high or low on your lip, pick it as the main wig with `n`, nudge it with `w`/`s`, and press `p` to save.
+>
+> 👻 **Lights-off trick:** get your costume lined up, press `f` to pin it, then kill the lights. Your mouse ears (or Glaaron) keep floating in the dark.
 
 > 🎩 **Tall hat tip:** the top hat (and the mohawk) go well above your head. If the top gets cut off, sit a little further back or press `-` to shrink it, then `p` to save.
 
@@ -217,11 +219,14 @@ Click the **GlamCam** window first, then:
 | `w` `a` `s` `d` | Nudge the wig up / left / down / right |
 | `-` `=` | Shrink / grow the wig |
 | `n` | Next wig |
+| `m` | Mustache on **any** wig: cycles none → The Mustache → Neon Mustache. Disco Inferno with a neon handlebar? Yes. |
+| `x` | Hide your real hair: paints it out so it can't peek out from under the wig |
+| `f` | Pin the costume in place. Press it, turn your lights off, and enjoy your floating Glaaron. `f` again to resume tracking |
 | `h` | Wig off / on (for when your skip-level joins) |
 | `b` | Background blur off / on |
 | `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |
 | `p` | Save this wig's fit, so it's remembered next time |
-| `?` | Show the keys on screen for a few seconds |
+| `k` (or `⌘K` / `Ctrl+K`) | Open a floating **GlamCam Keys** window with all of this. It's a separate window, so it never shows up on camera |
 | `q` / `Esc` / close the window | Quit, return to your natural, disappointing hair |
 
 ## 🧪 Make your own wig
@@ -285,6 +290,8 @@ Pass these to `run.sh` / `run.bat`, or to the app's executable.
 | `--smooth 0.7` | Steadier wig, a bit more lag (0–0.9, default 0.5) |
 | `--no-blur` | Start with background blur off |
 | `--match-lighting` | Start with lighting match on |
+| `--hide-hair` | Start with your real hair painted out (`x`) |
+| `--mustache NAME` | Start with a mustache layered on: `mustache` or `neon-mustache` (`m`) |
 | `--download-models` | Re-download the AI models (from source) |
 
 ## 🩹 Troubleshooting
@@ -318,6 +325,9 @@ macOS: `brew install python@3.12`, then `./setup.sh` again. Windows: `winget ins
 
 **The wig jitters**
 `--smooth 0.7`. Good lighting on your face helps a lot too. Trackers love a ring light.
+
+**My real hair peeks out around the wig**
+Press `x` (or start with `--hide-hair`). GlamCam finds your actual hair and paints it out with the colors around it. It leaves your face alone, so hair right next to your face may still show a little. Pressing `=` once or twice to make the wig a bit bigger covers the rest.
 
 **The wig vanished**
 It hides when it can't see your face for a third of a second. Come back into frame, or check that `h` didn't get bumped.

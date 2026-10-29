@@ -1,6 +1,7 @@
 {
  "name": "The Executive",
  "order": 13,
+ "kind": "wig",
  "landmarks": {
   "10": [
    247,

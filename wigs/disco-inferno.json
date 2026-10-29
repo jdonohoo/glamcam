@@ -1,6 +1,7 @@
 {
  "name": "Disco Inferno",
  "order": 10,
+ "kind": "wig",
  "landmarks": {
   "10": [
    473,

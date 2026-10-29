@@ -1,6 +1,7 @@
 {
  "name": "The Ultimate Glaaron",
  "order": 4,
+ "kind": "wig",
  "landmarks": {
   "10": [
    392,

@@ -80,7 +80,7 @@ def face_hole(top=-112, extra=0):
     return m.filter(ImageFilter.GaussianBlur(3 * SS))
 
 
-def finish(img, wig_id, name, order, hole=None, glow=14, glow_strength=1.0, under=None):
+def finish(img, wig_id, name, order, hole=None, glow=14, glow_strength=1.0, under=None, kind="wig"):
     """Add the neon glow, cut the face hole, crop, save. `under` is composited beneath without glow."""
     if hole is not None:
         img.putalpha(ImageChops.multiply(img.getchannel("A"), ImageChops.invert(hole)))
@@ -103,7 +103,7 @@ def finish(img, wig_id, name, order, hole=None, glow=14, glow_strength=1.0, unde
     out = out.crop(box)
     out.save(WIGS / f"{wig_id}.png", optimize=True)
     anchors = {str(k): [round(x + OX - box[0], 1), round(y + OY - box[1], 1)] for k, (x, y) in CANON.items()}
-    (WIGS / f"{wig_id}.json").write_text(json.dumps({"name": name, "order": order, "landmarks": anchors}, indent=1))
+    (WIGS / f"{wig_id}.json").write_text(json.dumps({"name": name, "order": order, "kind": kind, "landmarks": anchors}, indent=1))
     print(f"wigs/{wig_id}.png  {out.size}")
 
 
@@ -372,12 +372,12 @@ def mustache_neon():
 
 def stache_brown():
     """Distinguished. Twirlable. Not legally binding."""
-    finish(mustache_brown(), "mustache", "The Mustache", 5, glow=0)
+    finish(mustache_brown(), "mustache", "The Mustache", 5, glow=0, kind="mustache")
 
 
 def stache_neon():
     """Visible from space, or at least from the back of the all-hands."""
-    finish(mustache_neon(), "neon-mustache", "Neon Mustache", 6, glow=12, glow_strength=1.3)
+    finish(mustache_neon(), "neon-mustache", "Neon Mustache", 6, glow=12, glow_strength=1.3, kind="mustache")
 
 
 def ultimate_glaaron():

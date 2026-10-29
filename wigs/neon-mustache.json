@@ -1,6 +1,7 @@
 {
  "name": "Neon Mustache",
  "order": 6,
+ "kind": "mustache",
  "landmarks": {
   "10": [
    269,

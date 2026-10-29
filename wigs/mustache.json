@@ -1,6 +1,7 @@
 {
  "name": "The Mustache",
  "order": 5,
+ "kind": "mustache",
  "landmarks": {
   "10": [
    239,

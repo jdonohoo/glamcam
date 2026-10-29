@@ -9,7 +9,9 @@ Keys (click the preview window first):
   w/a/s/d  nudge the wig up/left/down/right     - / =  shrink / grow
   n        next wig                              h      wig on/off
   b        background blur on/off                l      lighting match on/off
-  p        save the wig fit                      ?      show these keys
+  x        hide your real hair on/off            f      pin the wig in place on/off
+  m        mustache on any wig (cycles)          k      floating keys window (cmd+K too)
+  p        save the wig fit
   q/Esc    quit
 """
 import argparse
@@ -137,7 +139,10 @@ class Wig:
         if self.image is None or self.image.ndim != 3 or self.image.shape[2] != 4:
             raise ValueError(f"{png_path} is not a transparent PNG")
         self.idx = [int(k) for k in meta["landmarks"]]
+        if not set(self.idx) <= set(ANCHOR_IDS):
+            raise ValueError("anchor landmarks must come from ANCHOR_IDS")
         self.ref = np.array(list(meta["landmarks"].values()), dtype=np.float64)
+        self.kind = meta.get("kind", "wig")  # "mustache" ones can also be layered over any wig with m
         # brightness of the skin in the source photo; drawn (neon) wigs have none and keep their glow
         self.skin_luma = meta.get("skin_luma")
 
@@ -221,16 +226,21 @@ def make_wig(photo, name, out_dir=USER_DIR / "my-wigs"):
 # ---------------------------------------------------------------- renderer
 
 class GlamRenderer:
-    def __init__(self, wig, blur=True, smooth=0.5, relight=False):
+    def __init__(self, wig, blur=True, smooth=0.5, relight=False, hide_hair=False):
         self.fits = json.loads(FIT_FILE.read_text()) if FIT_FILE.exists() else {}
         self.set_wig(wig)
+        self.stache = None  # optional mustache layered on top of the wig
         self.blur = blur
         self.show_wig = True
         self.relight = relight  # off by default: the photo-lit glow is half the joke
         self.smooth = smooth
-        self.pts = None
+        self.face = None  # tracked ANCHOR_IDS points, shared by every layer
         self.mask = None
         self.lost_frames = 0
+        self.hide_hair = hide_hair  # paint out your real hair so it can't peek out from under the wig
+        self.hair_seg = None  # loaded on first use
+        self.hair_mask = None
+        self.pinned = False  # freeze the wig in place (lights off: floating Glaaron)
 
         with quiet_native_logs():
             self._load_models()
@@ -246,10 +256,11 @@ class GlamRenderer:
     def close(self):
         self.landmarker.close()
         self.segmenter.close()
+        if self.hair_seg:
+            self.hair_seg.close()
 
     def set_wig(self, wig):
         self.wig = wig
-        self.pts = None  # anchor sets differ between wigs
         self.gain = None
         self.fit = self.fits.setdefault(wig.id, {"dx": 0.0, "dy": 0.0, "scale": 1.0})
 
@@ -261,60 +272,118 @@ class GlamRenderer:
         self.fit["dy"] += dy
         self.fit["scale"] = float(np.clip(self.fit["scale"] * scale, 0.3, 3.0))
 
+    def _layer_pts(self, wig):
+        return self.face[[ANCHOR_IDS.index(i) for i in wig.idx]]
+
     def _track(self, image, ts, w, h):
+        if self.pinned and self.face is not None:
+            return
         res = self.landmarker.detect_for_video(image, ts)
         if not res.face_landmarks:
             self.lost_frames += 1
             if self.lost_frames > 10:  # hide the wig if the face is gone for ~1/3 s
-                self.pts = None
+                self.face = None
             return
         self.lost_frames = 0
         lm = res.face_landmarks[0]
-        pts = np.array([[lm[i].x * w, lm[i].y * h] for i in self.wig.idx])
+        pts = np.array([[lm[i].x * w, lm[i].y * h] for i in ANCHOR_IDS])
         # exponential smoothing kills jitter; big jumps snap so fast moves don't lag
-        if self.pts is None or np.abs(pts - self.pts).max() > 0.08 * w:
-            self.pts = pts
+        if self.face is None or np.abs(pts - self.face).max() > 0.08 * w:
+            self.face = pts
         else:
-            self.pts += (1 - self.smooth) * (pts - self.pts)
+            self.face += (1 - self.smooth) * (pts - self.face)
 
     def _match_lighting(self, frame):
         """Dim/brighten a photo wig so it's lit like your face instead of like the original photo."""
-        if not self.relight or self.wig.skin_luma is None or self.pts is None:
+        if self.pinned:  # keep the lighting it had when pinned; the room may be dark now
+            return
+        if not self.relight or self.wig.skin_luma is None or self.face is None:
             self.gain = None
             return
-        i, j = self.wig.idx.index(33), self.wig.idx.index(263)
-        live = skin_luma(frame, self.pts[i], self.pts[j])
+        live = skin_luma(frame, self.face[ANCHOR_IDS.index(33)], self.face[ANCHOR_IDS.index(263)])
         if live is None:
             return
         g = float(np.clip(live / max(self.wig.skin_luma, 1.0), 0.3, 1.3))
         self.gain = g if self.gain is None else 0.9 * self.gain + 0.1 * g  # ease in, no flicker
 
-    def _blur_background(self, frame, image, ts):
-        res = self.segmenter.segment_for_video(image, ts)
-        m = np.squeeze(res.confidence_masks[0].numpy_view()).astype(np.float32)
-        m = cv2.GaussianBlur(m, (0, 0), 3)
-        self.mask = m if self.mask is None or self.mask.shape != m.shape else 0.5 * self.mask + 0.5 * m
-        h, w = frame.shape[:2]
-        small = cv2.resize(frame, (w // 4, h // 4), interpolation=cv2.INTER_AREA)
-        bg = cv2.resize(cv2.GaussianBlur(small, (0, 0), 6), (w, h), interpolation=cv2.INTER_LINEAR)
-        a = self.mask[..., None]
-        return (frame * a + bg * (1 - a)).astype(np.uint8)
+    def _hair(self, image, ts, w):
+        """Confidence mask of your real hair, grown a little to catch the wispy edges."""
+        if self.hair_seg is None:
+            with quiet_native_logs():
+                self.hair_seg = vision.ImageSegmenter.create_from_options(vision.ImageSegmenterOptions(
+                    base_options=BaseOptions(model_asset_path=model_path("hair_segmenter.tflite")),
+                    running_mode=vision.RunningMode.VIDEO, output_confidence_masks=True))
+        res = self.hair_seg.segment_for_video(image, ts)
+        m = np.squeeze(res.confidence_masks[-1].numpy_view()).astype(np.float32)
+        m = np.clip((m - 0.45) / 0.3, 0, 1)  # only confident hair; faces can score ~0.4
+        k = max(3, (w // 160) | 1)
+        m = cv2.GaussianBlur(cv2.dilate(m, np.ones((k, k), np.uint8)), (0, 0), 2)
+        if self.face is not None:  # never paint out the face itself
+            m *= 1 - self._face_oval(m.shape)
+        self.hair_mask = m if self.hair_mask is None or self.hair_mask.shape != m.shape else 0.5 * self.hair_mask + 0.5 * m
+        return self.hair_mask
 
-    def _draw_wig(self, frame):
+    def _face_oval(self, shape):
+        """Soft mask of the face (brows to chin), from the tracked temple and forehead points."""
+        f = {i: self.face[n] for n, i in enumerate(ANCHOR_IDS)}
+        left, right, top = f[234], f[454], f[10]
+        width = np.linalg.norm(right - left)
+        mid = (left + right) / 2
+        axis = (right - left) / width
+        down = np.array([-axis[1], axis[0]])  # perpendicular to the eye line, pointing at the chin
+        if np.dot(down, mid - top) < 0:
+            down = -down
+        ry = 0.78 * width
+        center = mid + down * (0.78 * width - np.linalg.norm(mid - top))
+        oval = np.zeros(shape, np.float32)
+        cv2.ellipse(oval, (int(center[0]), int(center[1])), (int(0.46 * width), int(ry)),
+                    float(np.degrees(np.arctan2(axis[1], axis[0]))), 0, 360, 1.0, -1, cv2.LINE_AA)
+        return cv2.GaussianBlur(oval, (0, 0), max(2.0, width / 40))
+
+    def _composite(self, frame, image, ts):
+        """Background blur and/or painting out your own hair, so only the wig's hair shows."""
+        if not (self.blur or self.hide_hair):
+            return frame
+        h, w = frame.shape[:2]
+        size = (w // 4, h // 4)
+        small = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
+        hair = None
+        if self.hide_hair:
+            hair = self._hair(image, ts, w)
+            hole = (cv2.resize(hair, size) > 0.35).astype(np.uint8) * 255
+            small = cv2.inpaint(small, hole, 5, cv2.INPAINT_TELEA)  # refill hair with the colors around it
+        out = frame.astype(np.float32)
+        if self.blur:
+            res = self.segmenter.segment_for_video(image, ts)
+            m = cv2.GaussianBlur(np.squeeze(res.confidence_masks[0].numpy_view()).astype(np.float32), (0, 0), 3)
+            self.mask = m if self.mask is None or self.mask.shape != m.shape else 0.5 * self.mask + 0.5 * m
+            fill = cv2.resize(cv2.GaussianBlur(small, (0, 0), 6), (w, h), interpolation=cv2.INTER_LINEAR)
+            a = self.mask[..., None]
+            out = out * a + fill * (1 - a)
+        else:
+            fill = cv2.resize(cv2.GaussianBlur(small, (0, 0), 2), (w, h), interpolation=cv2.INTER_LINEAR)
+        if hair is not None:
+            a = hair[..., None]
+            out = out * (1 - a) + fill * a
+        return out.astype(np.uint8)
+
+    def _draw_wig(self, frame, wig=None, gain=None):
+        wig = wig or self.wig
+        fit = self.fits.setdefault(wig.id, {"dx": 0.0, "dy": 0.0, "scale": 1.0})
         h, w = frame.shape[:2]
         # user fit: scale about the anchor centroid, then offset (in wig-image pixels)
-        c = self.wig.ref.mean(0)
-        s = self.fit["scale"]
-        tweak = np.array([[s, 0, (1 - s) * c[0] + self.fit["dx"]],
-                          [0, s, (1 - s) * c[1] + self.fit["dy"]],
+        c = wig.ref.mean(0)
+        s = fit["scale"]
+        tweak = np.array([[s, 0, (1 - s) * c[0] + fit["dx"]],
+                          [0, s, (1 - s) * c[1] + fit["dy"]],
                           [0, 0, 1]])
-        m = similarity_transform(self.wig.ref, self.pts) @ tweak
-        warped = cv2.warpAffine(self.wig.image, m, (w, h), flags=cv2.INTER_LINEAR,
+        m = similarity_transform(wig.ref, self._layer_pts(wig)) @ tweak
+        warped = cv2.warpAffine(wig.image, m, (w, h), flags=cv2.INTER_LINEAR,
                                 borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
         a = warped[..., 3:].astype(np.float32) / 255
         rgb = warped[..., :3].astype(np.float32)
-        if self.gain is not None:
-            rgb = np.minimum(rgb * self.gain, 255)
+        if gain is not None:
+            rgb = np.minimum(rgb * gain, 255)
         return (rgb * a + frame * (1 - a)).astype(np.uint8)
 
     def process(self, frame, ts):
@@ -322,9 +391,11 @@ class GlamRenderer:
         image = to_mp_image(frame)
         self._track(image, ts, w, h)
         self._match_lighting(frame)
-        out = self._blur_background(frame, image, ts) if self.blur else frame
-        if self.show_wig and self.pts is not None:
-            out = self._draw_wig(out)
+        out = self._composite(frame, image, ts)
+        if self.show_wig and self.face is not None:
+            out = self._draw_wig(out, self.wig, self.gain)
+            if self.stache is not None and self.stache is not self.wig:
+                out = self._draw_wig(out, self.stache)
         return out
 
 
@@ -391,23 +462,44 @@ def draw_hud(img, text, y=34):
     cv2.putText(img, text, (16, y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (210, 95, 255), 2, cv2.LINE_AA)
 
 
-HELP = [("w a s d", "move wig"), ("- =", "shrink / grow"), ("n", "next wig"), ("h", "wig on/off"),
-        ("b", "background blur"), ("l", "lighting match"), ("p", "save wig fit"), ("q", "quit")]
+HELP = [("w a s d", "move the wig"), ("- / =", "shrink / grow"), ("n", "next wig"), ("m", "mustache on any wig"),
+        ("x", "hide my real hair"), ("f", "pin it (lights-off mode)"), ("b", "background blur"),
+        ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"), ("k  cmd+K", "this window"),
+        ("q", "quit")]
+KEYS_WINDOW = "GlamCam Keys"
 
 
-def draw_help(img):
+def keys_card():
+    """The keyboard shortcuts as a little neon card, for its own floating window."""
+    img = np.full((96 + 38 * len(HELP), 470, 3), (40, 16, 27), np.uint8)
+    cv2.rectangle(img, (6, 6), (img.shape[1] - 7, img.shape[0] - 7), (210, 95, 255), 2, cv2.LINE_AA)
+    cv2.putText(img, "GlamCam keys", (26, 56), cv2.FONT_HERSHEY_DUPLEX, 1.1, (210, 95, 255), 2, cv2.LINE_AA)
     for i, (key, what) in enumerate(HELP):
-        y = 34 + 30 * i
-        for x, txt in ((16, key), (130, what)):
-            cv2.putText(img, txt, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 0), 5, cv2.LINE_AA)
-            cv2.putText(img, txt, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (210, 95, 255), 2, cv2.LINE_AA)
+        y = 104 + 38 * i
+        cv2.putText(img, key, (26, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 240, 0), 2, cv2.LINE_AA)
+        cv2.putText(img, what, (170, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (245, 230, 255), 1, cv2.LINE_AA)
+    return img
 
 
-def window_closed(state):
+def toggle_keys_window(state):
+    """Open or close the floating shortcuts window. It's a separate window, so OBS never captures it."""
+    if state.get("open"):
+        cv2.destroyWindow(KEYS_WINDOW)
+        state.clear()
+        return
+    cv2.imshow(KEYS_WINDOW, keys_card())
+    try:
+        cv2.setWindowProperty(KEYS_WINDOW, cv2.WND_PROP_TOPMOST, 1)  # float above everything
+    except cv2.error:
+        pass
+    state["open"] = True
+
+
+def window_closed(state, name=WINDOW):
     """True once the user clicks the window's close button. Some backends can't report
     visibility (they return -1), so only trust it after it has reported visible once."""
     try:
-        visible = cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE)
+        visible = cv2.getWindowProperty(name, cv2.WND_PROP_VISIBLE)
     except cv2.error:
         visible = -1
     if visible >= 1:
@@ -448,7 +540,8 @@ def run(args):
         sys.exit("Camera opened but returned no frames.")
     h, w = frame.shape[:2]
 
-    renderer = GlamRenderer(wigs[current], blur=not args.no_blur, smooth=args.smooth, relight=args.match_lighting)
+    renderer = GlamRenderer(wigs[current], blur=not args.no_blur, smooth=args.smooth, relight=args.match_lighting,
+                            hide_hair=args.hide_hair)
     cam = None if args.no_vcam or args.obs_window else open_virtual_camera(w, h, args.fps)
 
     print("Keys" + __doc__.split("Keys", 1)[1])
@@ -457,7 +550,10 @@ def run(args):
             ord("-"): (0, 0, 1 / 1.03), ord("="): (0, 0, 1.03), ord("+"): (0, 0, 1.03)}
     t0, last_ts = time.monotonic(), -1
     hud_until = 0 if args.obs_window else time.monotonic() + 4
-    help_until, win_state = 0, {}
+    win_state, keys_state = {}, {}
+    staches = [None] + [wg for wg in wigs if wg.kind == "mustache"]
+    if args.mustache:
+        renderer.stache = next((wg for wg in staches[1:] if wg.id == args.mustache), None)
     try:
         while ok:
             ts = max(int((time.monotonic() - t0) * 1000), last_ts + 1)  # must strictly increase
@@ -467,19 +563,18 @@ def run(args):
                 cam.send(out)
             # OBS mode: clean, un-mirrored frames. Otherwise a mirrored preview, like a selfie cam.
             view = out.copy() if args.obs_window else cv2.flip(out, 1)
-            now = time.monotonic()
-            if now < help_until:
-                draw_help(view)
-            elif now < hud_until:
-                draw_hud(view, f"{renderer.wig.name}  (n = next wig, ? = keys)")
+            if time.monotonic() < hud_until:
+                draw_hud(view, f"{renderer.wig.name}  (n = next wig, k = keys)")
             cv2.imshow(WINDOW, view)
 
             k = cv2.waitKey(1) & 0xFF
             if k in (ord("q"), 27) or window_closed(win_state):
                 break
-            if k in (ord("?"), ord("/")):
-                help_until = 0 if now < help_until else now + 6
-            if k in keys:
+            if keys_state.get("open") and window_closed(keys_state, KEYS_WINDOW):
+                keys_state.clear()  # closed with its own close button
+            if k in (ord("k"), ord("K"), 11, ord("?"), ord("/")):  # k, cmd+K (arrives as k), ctrl+K (11)
+                toggle_keys_window(keys_state)
+            elif k in keys:
                 dx, dy, sc = keys[k]
                 renderer.nudge(dx if args.obs_window else -dx, dy, sc)  # mirrored preview flips left/right
             elif k == ord("n"):
@@ -487,8 +582,15 @@ def run(args):
                 renderer.set_wig(wigs[current])
                 if not args.obs_window:
                     hud_until = time.monotonic() + 2
+            elif k == ord("m"):
+                renderer.stache = staches[(staches.index(renderer.stache) + 1) % len(staches)]
             elif k == ord("b"):
                 renderer.blur = not renderer.blur
+            elif k == ord("x"):
+                renderer.hide_hair = not renderer.hide_hair
+            elif k == ord("f"):
+                renderer.pinned = not renderer.pinned
+                print("Wig pinned. Kill the lights!" if renderer.pinned else "Wig unpinned, tracking again.")
             elif k == ord("l"):
                 renderer.relight = not renderer.relight
             elif k == ord("h"):
@@ -515,7 +617,8 @@ def self_test():
     wigs = load_wigs()
     if not wigs:
         raise RuntimeError("no wigs bundled")
-    r = GlamRenderer(wigs[0], relight=True)
+    r = GlamRenderer(wigs[0], relight=True, hide_hair=True)
+    r.stache = next((wg for wg in wigs if wg.kind == "mustache"), None)
     frame = np.full((720, 1280, 3), 128, np.uint8)
     for k in range(3):
         r.process(frame, k * 33 + 1)
@@ -537,6 +640,8 @@ def main():
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--no-blur", action="store_true", help="start with background blur off")
     ap.add_argument("--match-lighting", action="store_true", help="dim/brighten photo wigs to match your room")
+    ap.add_argument("--hide-hair", action="store_true", help="start with your real hair painted out")
+    ap.add_argument("--mustache", metavar="NAME", help="start with this mustache layered on (mustache, neon-mustache)")
     ap.add_argument("--smooth", type=float, default=0.5, help="0 = raw tracking, 0.9 = very smooth/laggy")
     ap.add_argument("--no-vcam", action="store_true", help="preview only, don't send to the virtual camera")
     ap.add_argument("--obs-window", action="store_true",

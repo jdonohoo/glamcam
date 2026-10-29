@@ -1,6 +1,7 @@
 {
  "name": "Top Hat",
  "order": 2,
+ "kind": "wig",
  "landmarks": {
   "10": [
    392,

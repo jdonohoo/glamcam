@@ -1,6 +1,7 @@
 {
  "name": "Cyber Mohawk",
  "order": 12,
+ "kind": "wig",
  "landmarks": {
   "10": [
    269,

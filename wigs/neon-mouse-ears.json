@@ -1,6 +1,7 @@
 {
  "name": "Neon Mouse Ears",
  "order": 8,
+ "kind": "wig",
  "landmarks": {
   "10": [
    317,

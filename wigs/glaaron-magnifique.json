@@ -1,6 +1,7 @@
 {
  "name": "Glaaron Magnifique",
  "order": 3,
+ "kind": "wig",
  "landmarks": {
   "10": [
    392,

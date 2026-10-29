@@ -1,6 +1,7 @@
 {
  "name": "Mouse Ears",
  "order": 7,
+ "kind": "wig",
  "landmarks": {
   "10": [
    285,
