@@ -66,11 +66,40 @@ Press **`n`** while it's running to cycle through them, in this order: from Glaa
 
 > 🥸 **Mustache tip:** press `m` to add a mustache to *whatever* you're wearing. Mustaches are pinned to your upper face like the wigs, so they don't flap when you talk. If one sits a bit high or low on your lip, pick it as the main wig with `n`, nudge it with `w`/`s`, and press `p` to save.
 >
-> 👻 **Lights-off trick:** get your costume lined up, press `f` to pin it, then kill the lights. Your mouse ears (or Glaaron) keep floating in the dark.
+> 🦇 **[Cave Mode](#-cave-mode):** get your costume lined up, press `f` to freeze it, then kill the lights. Your mouse ears (or Glaaron) keep floating in the dark.
 
 > 🎩 **Tall hat tip:** the top hat (and the mohawk) go well above your head. If the top gets cut off, sit a little further back or press `-` to shrink it, then `p` to save.
 
 ---
+
+## ✨ Features
+
+Every feature is one key away. Click the GlamCam window and go.
+
+| Feature | Key | Stats |
+|---|---|---|
+| 🎩 **Face-tracking costumes**: wigs, hats, mustaches and ears that follow you as you lean, tilt and nod | `n` | Accuracy: **Uncanny** · Wigs: **12 and counting** |
+| 🥸 **Mustache mix & match**: put a mustache on *any* wig | `m` | Combinations: **Irresponsible** |
+| 🫥 **Hair hider**: paints your real hair out so it can't sneak out from under the wig | `x` | Hair: **Hidden** · Shame: **Also hidden** |
+| 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume, kill the lights, lurk | `f` | Lights: **Optional** · Mystery: **Maximum** |
+| 🌫️ **Background blur**: your laundry pile, gone | `b` | Laundry: **Gone** |
+| 💡 **Lighting match**: dim a wig to match your room | `l` | Default: **Off, because funnier** |
+| 🧪 **[Make your own wig](#-make-your-own-wig)**: any photo, any hair | `--make-wig` | Kevins: **Unlimited** |
+| ⌨️ **Floating keys window**: every shortcut, never on camera | `k` / `⌘K` | On camera: **Never** |
+| 📺 **Works with** Google Meet, Zoom, Teams and OBS, via the OBS Virtual Camera | | Compatibility: **Suspiciously good** |
+
+## 🦇 Cave Mode
+
+<p align="center"><img src="assets/cave.png" alt="Cave Mode: lights on, a mascot wears neon mouse ears and a neon mustache; press F; lights off, only the ears and mustache float in the dark"></p>
+
+For those of us who like to lurk in the dark.
+
+1. Get your costume lined up while your lights are on.
+2. Press **`f`**. The costume freezes exactly where it is.
+3. Turn your lights off. Your face fades into the void; your mouse ears, Glaaron hair or neon mustache stay floating right where your head was.
+4. Press **`f`** again to come back to the land of the face-tracked.
+
+Cave Mode keeps the costume's lighting from the moment you froze it, so it stays bright while you go dark. Neon wigs look especially haunted.
 
 ## 🚀 Getting started
 
@@ -215,6 +244,8 @@ In this route the preview window is mirrored like a selfie camera. Meet still ge
 
 ## 🎮 Controls
 
+<p align="center"><img src="assets/keys.png" alt="Controls: WASD move, - = size, N next wig, M mustache, X hide hair, F Cave Mode, B blur, H wig on/off, L lighting, P save, K or Cmd+K keys window, Q quit"></p>
+
 Click the **GlamCam** window first, then:
 
 | Key | Does |
@@ -224,7 +255,7 @@ Click the **GlamCam** window first, then:
 | `n` | Next wig |
 | `m` | Mustache on **any** wig: cycles none → The Mustache → Neon Mustache. Disco Inferno with a neon handlebar? Yes. |
 | `x` | Hide your real hair: paints it out so it can't peek out from under the wig |
-| `f` | Pin the costume in place. Press it, turn your lights off, and enjoy your floating Glaaron. `f` again to resume tracking |
+| `f` | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume in place, turn your lights off, lurk. `f` again to resume tracking |
 | `h` | Wig off / on (for when your skip-level joins) |
 | `b` | Background blur off / on |
 | `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |

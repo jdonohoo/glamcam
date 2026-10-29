@@ -9,7 +9,7 @@ Keys (click the preview window first):
   w/a/s/d  nudge the wig up/left/down/right     - / =  shrink / grow
   n        next wig                              h      wig on/off
   b        background blur on/off                l      lighting match on/off
-  x        hide your real hair on/off            f      pin the wig in place on/off
+  x        hide your real hair on/off            f      cave mode: freeze the costume, lights off
   m        mustache on any wig (cycles)          k      floating keys window (cmd+K too)
   p        save the wig fit
   q/Esc    quit
@@ -240,7 +240,7 @@ class GlamRenderer:
         self.hide_hair = hide_hair  # paint out your real hair so it can't peek out from under the wig
         self.hair_seg = None  # loaded on first use
         self.hair_mask = None
-        self.pinned = False  # freeze the wig in place (lights off: floating Glaaron)
+        self.pinned = False  # cave mode: freeze the costume in place, then lurk in the dark
 
         with quiet_native_logs():
             self._load_models()
@@ -463,7 +463,7 @@ def draw_hud(img, text, y=34):
 
 
 HELP = [("w a s d", "move the wig"), ("- / =", "shrink / grow"), ("n", "next wig"), ("m", "mustache on any wig"),
-        ("x", "hide my real hair"), ("f", "pin it (lights-off mode)"), ("b", "background blur"),
+        ("x", "hide my real hair"), ("f", "cave mode (freeze it)"), ("b", "background blur"),
         ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"), ("k  cmd+K", "this window"),
         ("q", "quit")]
 KEYS_WINDOW = "GlamCam Keys"
@@ -590,7 +590,8 @@ def run(args):
                 renderer.hide_hair = not renderer.hide_hair
             elif k == ord("f"):
                 renderer.pinned = not renderer.pinned
-                print("Wig pinned. Kill the lights!" if renderer.pinned else "Wig unpinned, tracking again.")
+                print("Cave mode ON: costume frozen. Kill the lights." if renderer.pinned
+                      else "Cave mode off: tracking your face again.")
             elif k == ord("l"):
                 renderer.relight = not renderer.relight
             elif k == ord("h"):
