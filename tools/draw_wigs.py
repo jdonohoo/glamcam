@@ -84,10 +84,13 @@ def finish(img, wig_id, name, order, hole=None, glow=14, glow_strength=1.0, unde
     """Add the neon glow, cut the face hole, crop, save. `under` is composited beneath without glow."""
     if hole is not None:
         img.putalpha(ImageChops.multiply(img.getchannel("A"), ImageChops.invert(hole)))
-    halo = img.filter(ImageFilter.GaussianBlur(glow * SS))
-    if glow_strength != 1.0:
-        halo.putalpha(halo.getchannel("A").point(lambda v: min(255, int(v * glow_strength))))
-    out = Image.alpha_composite(halo, img)
+    if glow:
+        halo = img.filter(ImageFilter.GaussianBlur(glow * SS))
+        if glow_strength != 1.0:
+            halo.putalpha(halo.getchannel("A").point(lambda v: min(255, int(v * glow_strength))))
+        out = Image.alpha_composite(halo, img)
+    else:
+        out = img
     if under is not None:
         out = Image.alpha_composite(under, out)
     if hole is not None:  # the halo shouldn't fog up your face either
@@ -250,8 +253,8 @@ def top_hat():
     finish(img, "top-hat", "Top Hat", 2, glow=14)
 
 
-def glaaron_magnifique():
-    """Glaaron's hair, crowned. For galas, award shows, and Tuesday standups."""
+def glaaron_in_canvas():
+    """Glaaron's hair warped onto the canonical face (supersampled canvas)."""
     sys.path.insert(0, str(REPO))
     from glamcam import similarity_transform
 
@@ -261,10 +264,128 @@ def glaaron_magnifique():
     m = np.vstack([similarity_transform(src, dst), [0, 0, 1]])
     inv = np.linalg.inv(m)[:2].flatten()
     hair = Image.open(WIGS / "glaaron.png").convert("RGBA")
-    hair = hair.transform((W * SS, H * SS), Image.AFFINE, tuple(inv), Image.BICUBIC)
+    return hair.transform((W * SS, H * SS), Image.AFFINE, tuple(inv), Image.BICUBIC)
+
+
+def glaaron_magnifique():
+    """Glaaron's hair, crowned. For galas, award shows, and Tuesday standups."""
     img = canvas()
     draw_top_hat(ImageDraw.Draw(img))
-    finish(img, "glaaron-magnifique", "Glaaron Magnifique", 3, glow=14, under=hair)
+    finish(img, "glaaron-magnifique", "Glaaron Magnifique", 3, glow=14, under=glaaron_in_canvas())
+
+
+def handlebar_path():
+    """Centerline + thickness of the right half of a handlebar mustache, canonical coords.
+    Sits between the base of the nose (y~145) and the top lip (y~190), curls up past the mouth corners."""
+    sweep = bezier([(4, 168), (75, 198), (150, 190), (198, 150)], 40)
+    pts = [(x, y, 64 - 42 * i / 40) for i, (x, y) in enumerate(sweep)]
+    cx, cy = 196, 114
+    for i in range(1, 46):  # the curl: around and up, tightening
+        f = i / 45
+        th = math.radians(80 - 290 * f)
+        r = 36 - 22 * f
+        pts.append((cx + r * math.cos(th), cy + r * math.sin(th), 22 - 18 * f))
+    return pts
+
+
+def offset_edges(path, side_scale=1.0):
+    """Left/right outline points of a variable-width path (canonical coords)."""
+    up, down = [], []
+    for i, (x, y, t) in enumerate(path):
+        x0, y0, _ = path[max(i - 1, 0)]
+        x1, y1, _ = path[min(i + 1, len(path) - 1)]
+        dx, dy = x1 - x0, y1 - y0
+        n = math.hypot(dx, dy) or 1
+        nx, ny = -dy / n, dx / n
+        h = t / 2 * side_scale
+        up.append((x + nx * h, y + ny * h))
+        down.append((x - nx * h, y - ny * h))
+    return up, down
+
+
+def mustache_shape():
+    """Both halves as polygons (canvas coords)."""
+    polys = []
+    for side in (1, -1):
+        up, down = offset_edges(handlebar_path())
+        poly = [(side * x, y) for x, y in up + down[::-1]]
+        polys.append([P(*q) for q in poly])
+    return polys
+
+
+def mustache_mask():
+    """Both halves joined in the middle as one shape, with a small notch under the nose."""
+    mask = Image.new("L", (W * SS, H * SS), 0)
+    md = ImageDraw.Draw(mask)
+    for poly in mustache_shape():
+        md.polygon(poly, fill=255)
+    md.ellipse([*P(-36, 138), *P(36, 198)], fill=255)
+    md.polygon([P(-12, 130), P(12, 130), P(0, 150)], fill=0)
+    return mask.filter(ImageFilter.GaussianBlur(1.2 * SS))
+
+
+def mustache_brown():
+    """Strand-by-strand: dark base, then hundreds of hairs following the curve."""
+    rnd = random.Random(11)
+    mask = mustache_mask()
+    hair = Image.new("RGBA", (W * SS, H * SS), (62, 36, 20, 255))
+    hd = ImageDraw.Draw(hair)
+    path = handlebar_path()
+    for _ in range(320):
+        f = rnd.uniform(-1.0, 1.0)
+        shade = rnd.uniform(0.75, 1.35)
+        col = (int(min(255, 112 * shade)), int(min(255, 70 * shade)), int(min(255, 38 * shade)), 255)
+        start = rnd.randint(0, 20)
+        for side in (1, -1):
+            line = []
+            for i, (x, y, t) in enumerate(path[start:]):
+                x0, y0, _ = path[max(start + i - 1, 0)]
+                x1, y1, _ = path[min(start + i + 1, len(path) - 1)]
+                n = math.hypot(x1 - x0, y1 - y0) or 1
+                nx, ny = -(y1 - y0) / n, (x1 - x0) / n
+                line.append(P(side * (x + nx * f * t / 2), y + ny * f * t / 2))
+            hd.line(line, fill=col, width=int(1.5 * SS))
+    # a glossy highlight along the top
+    for side in (1, -1):
+        up, _ = offset_edges(path, 0.45)
+        hd.line([P(side * x, y) for x, y in up[:70]], fill=(196, 140, 88, 200), width=int(3 * SS))
+    hair.putalpha(mask)
+    return hair
+
+
+def mustache_neon():
+    """The same handlebar, bent out of glass tubing."""
+    mask = mustache_mask()
+    grown = mask.filter(ImageFilter.MaxFilter(2 * int(3 * SS) + 1))
+    shrunk = mask.filter(ImageFilter.MinFilter(2 * int(3 * SS) + 1))
+    ring = ImageChops.subtract(grown, shrunk)
+    img = Image.new("RGBA", (W * SS, H * SS), (40, 12, 60, 0))
+    img.putalpha(mask)
+    img.alpha_composite(Image.composite(Image.new("RGBA", img.size, (255, 95, 210, 255)),
+                                        Image.new("RGBA", img.size, (0, 0, 0, 0)), ring))
+    d = ImageDraw.Draw(img)
+    path = handlebar_path()
+    spine = [P(-x, y) for x, y, t in path[::-1]] + [P(x, y) for x, y, t in path]
+    d.line(spine, fill=(0, 240, 255, 255), width=int(4 * SS), joint="curve")
+    return img
+
+
+def stache_brown():
+    """Distinguished. Twirlable. Not legally binding."""
+    finish(mustache_brown(), "mustache", "The Mustache", 5, glow=0)
+
+
+def stache_neon():
+    """Visible from space, or at least from the back of the all-hands."""
+    finish(mustache_neon(), "neon-mustache", "Neon Mustache", 6, glow=12, glow_strength=1.3)
+
+
+def ultimate_glaaron():
+    """Hair, hat, mustache. There is nothing left to add."""
+    under = Image.alpha_composite(glaaron_in_canvas(), mustache_brown())
+    img = canvas()
+    draw_top_hat(ImageDraw.Draw(img))
+    finish(img, "ultimate-glaaron", "The Ultimate Glaaron", 4, glow=14, under=under)
 
 
 if __name__ == "__main__":
@@ -275,3 +396,6 @@ if __name__ == "__main__":
     the_executive()
     top_hat()
     glaaron_magnifique()
+    stache_brown()
+    stache_neon()
+    ultimate_glaaron()
