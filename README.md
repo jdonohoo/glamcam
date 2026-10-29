@@ -89,7 +89,7 @@ Every feature is one key away. Click the GlamCam window and go.
 | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume, kill the lights, lurk with glowing neon-blue eyes and a neon mouth that talks | `f` | Lights: **Optional** · Mouth: **Running** |
 | 🪩 **[Neon props](#-neon-props)**: an Onboard sign, a disco ball, a floating neon keyboard and a "sucks to suck" window, hung on the wall *behind* you | `1`–`4` | Wall: **Decorated** |
 | 🐠 **[The Aquarium](#-the-aquarium)**: a big neon tank of swimming fish behind you. Pick who lives in it | `5`, then `t` | Fish: **Plenty** |
-| 🫥 **Hide me**: removes *you*, blacks out the room, and leaves just your props | `v` | You: **Gone** · Props: **Staying** |
+| 🫥 **Hide me**: removes *you*, blacks out the room, and leaves just your props. In Cave Mode it's 👻 **ghost mode**: your frozen avatar stays, the camera never shows | `v` | You: **Gone** · Avatar: **Staying** |
 | 🔭 **Room mode**: zooms the camera out so there's more wall for props | `z` | Wall space: **More** |
 | 📺 **1080p** out of the box, even if your webcam is 720p | | Pixels: **All of them** |
 | 🌫️ **Background blur**: your laundry pile, gone | `b` | Laundry: **Gone** |
@@ -110,7 +110,8 @@ For those of us who like to lurk in the dark.
 4. As the room goes dark, **two neon-blue eyes** fade in where yours were. They blink every few seconds. Nobody asked for this. Everybody needed it.
 5. A **neon mouth** fades in too, and **it talks when you talk**: it listens to your microphone, so it works in total darkness (when there's enough light it follows your actual lips). Quiet: a neon smile. Talking: it opens. Yelling: tongue.
 6. **Drag the frozen costume** anywhere in the GlamCam window (scroll over it, or `[` `]`, to resize). Park your glowing self in the bottom corner and give the props the whole wall.
-7. Press **`f`** again to come back to the land of the face-tracked.
+7. Now press **`v`** for 👻 **ghost mode**: the camera picture is gone completely (black background, just your props and your frozen, glowing avatar). Your real self can't sneak back in, even if a lamp turns on or the monitor lights up your face. The eyes and mouth stay fully lit no matter how bright your room really is.
+8. Press **`f`** again to come back to the land of the face-tracked.
 
 The mouth needs microphone access. The first time, your Mac asks whether Terminal (or GlamCam) may use the microphone. GlamCam only listens for *how loud* you are; nothing is recorded or sent anywhere. No mic? The mouth still follows your lips whenever there's a little light on your face.
 
@@ -352,7 +353,7 @@ Click the **GlamCam** window first, then:
 | `g` | 😎 [Sunglasses](#-hoodie--shades): cycles none → Shades → Neon Shades, over any wig |
 | `1` `2` `3` `4` | 🪩 [Neon props](#-neon-props) on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck. `0` clears them |
 | `5` | 🐠 [The Aquarium](#-the-aquarium) on / off |
-| `v` | 🫥 Hide me: just the props, on black |
+| `v` | 🫥 Hide me: just the props, on black. In Cave Mode: 👻 ghost mode (props + your frozen avatar, never the camera) |
 | `z` | 🔭 Room mode: zoom out for more wall (1× → 1.25× → 1.5×) |
 | 🖱️ drag / scroll / double-click | Move, resize, or bring a prop in front of you ([details](#-neon-props)) |
 | `[` `]` | Shrink / grow the last prop you grabbed |

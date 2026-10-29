@@ -13,6 +13,7 @@ Keys (click the preview window first):
   m        mustache on any wig (cycles)          k      floating keys window (cmd+K too)
   o        hoodie mode on/off                    g      sunglasses (cycles)
   v        hide me: just the props, on black     z      room mode: zoom out for more wall
+           (in cave mode: ghost mode, your frozen avatar + props, never the camera)
   1-5      neon props behind you (0 clears)      t      who's in the aquarium (cycles)
   drag     move a prop with the mouse            r      put the props back where they started
   scroll   resize the prop under the mouse       [ ]    shrink / grow the last prop you grabbed
@@ -730,22 +731,27 @@ class GlamRenderer:
         out = self._composite(frame, image, ts)
         if out is frame:
             out = frame.copy()  # layers draw in place; never scribble on the camera frame
-        if self.show_wig and self.face is not None and not self.hide_me:
+        ghost = self.hide_me and self.pinned  # cave mode + hide me: only the avatar and props, never the camera
+        if self.show_wig and self.face is not None and (ghost or not self.hide_me):
             drawn = set()
             for layer in (self.hoodie, self.wig, self.stache, self.glasses):  # bottom to top
                 if layer is None or layer.id in drawn:
                     continue
                 drawn.add(layer.id)
                 out = self._draw_wig(out, layer, self.gain if layer is self.wig else None)
-        if self.pinned and self.face is not None and not self.hide_me:
+        if self.pinned and self.face is not None:
             out = self._cave_eyes(out, frame, ts)
         return out
 
     def _cave_eyes(self, out, frame, ts):
         """Cave mode: neon-blue eyes (that blink) and a neon mouth (that talks) fade in as the room goes dark."""
         h, w = frame.shape[:2]
-        luma = float(cv2.cvtColor(cv2.resize(frame, (64, 36), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2GRAY).mean())
-        dark = float(np.clip((70 - luma) / 45, 0, 1))
+        if self.hide_me:  # ghost mode: it's always dark in here, whatever your actual lights are doing
+            dark = 1.0
+        else:
+            luma = float(cv2.cvtColor(cv2.resize(frame, (64, 36), interpolation=cv2.INTER_AREA),
+                                      cv2.COLOR_BGR2GRAY).mean())
+            dark = float(np.clip((70 - luma) / 45, 0, 1))
         if dark <= 0:
             return out
         self.mic.start()
@@ -774,10 +780,11 @@ class GlamRenderer:
             for eye in ((f[33] + f[133]) / 2, (f[362] + f[263]) / 2):
                 cv2.ellipse(glow, pt(eye), (r * 2, r), tilt, 0, 360, (255, 190, 30), -1, cv2.LINE_AA)
                 cv2.ellipse(core, pt(eye), (int(r * 1.2), max(2, r // 2)), tilt, 0, 360, (255, 245, 210), -1, cv2.LINE_AA)
-        # the mouth: about 0.63 eye-widths below the eyes; a closed smile line that opens when you talk
-        mouth = (f[33] + f[263]) / 2 + down * 0.63 * e
+        # the mouth: a closed smile line that opens (downward) when you talk
         mw = int(0.3 * e)
         mh = int(2 + self.mouth * 0.2 * e)
+        lip = (f[33] + f[263]) / 2 + down * 0.74 * e  # top lip: just under where a mustache sits
+        mouth = lip + down * (mh if self.mouth >= 0.08 else 0)  # opens downward, like a jaw
         lw = max(2, int(e / 45))
         if self.mouth < 0.08:
             cv2.ellipse(glow, pt(mouth), (mw, max(3, int(0.06 * e))), tilt, 15, 165, (210, 95, 255), lw * 2, cv2.LINE_AA)
@@ -877,7 +884,7 @@ def draw_hud(img, text, y=34):
 
 
 HELP = [("w a s d", "move the wig"), ("- / =", "shrink / grow"), ("n", "next wig"), ("m", "mustache on any wig"),
-        ("o", "hoodie mode"), ("g", "sunglasses"), ("v", "hide me (props only)"), ("z", "room mode (zoom out)"),
+        ("o", "hoodie mode"), ("g", "sunglasses"), ("v", "hide me (+ f: ghost mode)"), ("z", "room mode (zoom out)"),
         ("x", "hide my real hair"), ("f", "cave mode (glowing eyes)"), ("b", "background blur"),
         ("1 - 5", "neon props (0 = none)"), ("drag", "move a prop"), ("scroll  [ ]", "resize a prop"), ("dbl-click", "prop in front of you"), ("cave: drag", "move your avatar"), ("r", "reset props"), ("t", "aquarium fish"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
         ("k  cmd+K", "this window"),
