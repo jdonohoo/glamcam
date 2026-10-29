@@ -1,0 +1,39 @@
+<!-- Source for props/sprites/angelfish-*.png, and pleco.png. Render each #id element to a
+     transparent PNG (Playwright: element.screenshot({omitBackground: true})) and crop to its bounding box. -->
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:transparent}.p{display:inline-block;padding:30px}</style></head><body>
+<div class="p" id="angel1"><svg width="230" height="300" viewBox="-115 -150 230 300"></svg></div>
+<div class="p" id="angel2"><svg width="230" height="300" viewBox="-115 -150 230 300"></svg></div>
+<div class="p" id="pleco"><svg width="300" height="140" viewBox="-150 -70 300 140"></svg></div>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const mk = (svg) => (n, a, p = svg) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); p.appendChild(e); return e; };
+let seed = 5; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const glowDef = (el, id) => { el('defs', {}).innerHTML = `<filter id="${id}" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`; };
+
+// angelfish, facing right: tall diamond body with long sweeping fins and vertical bands
+const angel = (id, body, band, fin, glow) => {
+  const el = mk(document.querySelector(`#${id} svg`)); glowDef(el, id + 'g');
+  el('path', {d: 'M-20,-30 Q-10,-120 -60,-140 Q-30,-70 -50,-20 Z', fill: fin, 'fill-opacity': .75, stroke: glow, 'stroke-width': 3, filter: `url(#${id}g)`}); // dorsal
+  el('path', {d: 'M-20,30 Q-10,120 -60,140 Q-30,70 -50,20 Z', fill: fin, 'fill-opacity': .75, stroke: glow, 'stroke-width': 3, filter: `url(#${id}g)`});   // anal
+  el('path', {d: 'M-58,0 L-100,-34 Q-90,0 -100,34 Z', fill: fin, 'fill-opacity': .75, stroke: glow, 'stroke-width': 3, filter: `url(#${id}g)`});              // tail
+  el('path', {d: 'M-60,0 Q-30,-70 20,-48 Q70,-18 78,4 Q70,22 20,48 Q-30,70 -60,0 Z', fill: body, stroke: glow, 'stroke-width': 4, filter: `url(#${id}g)`});
+  [[-30, 34], [0, 52], [32, 40]].forEach(([x, hh]) => el('rect', {x: x - 5, y: -hh, width: 10, height: 2 * hh, rx: 5, fill: band, 'fill-opacity': .85}));
+  el('path', {d: 'M30,40 Q34,90 22,128', fill: 'none', stroke: glow, 'stroke-width': 3, filter: `url(#${id}g)`});  // the long feeler fins
+  el('path', {d: 'M38,38 Q46,86 40,120', fill: 'none', stroke: glow, 'stroke-width': 3, filter: `url(#${id}g)`});
+  el('circle', {cx: 52, cy: -8, r: 9, fill: '#FF2E4D', stroke: '#fff', 'stroke-width': 2}); el('circle', {cx: 54, cy: -8, r: 4, fill: '#120008'});
+};
+angel('angel1', '#D8F4FF', '#2A6BFF', '#9FE8FF', '#00F0FF');   // silver with neon-blue bands
+angel('angel2', '#FFD23D', '#FF5FD2', '#FFE98A', '#FFE95A');   // gold with pink bands
+
+// pleco, facing right: armored catfish, gold-nugget style
+(() => {
+  const el = mk(document.querySelector('#pleco svg')); glowDef(el, 'pg');
+  el('path', {d: 'M-30,-18 Q0,-70 46,-24 Z', fill: '#1A1A22', stroke: '#FFE95A', 'stroke-width': 4, filter: 'url(#pg)'});        // sail fin
+  el('path', {d: 'M-104,0 L-140,-30 L-132,0 L-140,30 Z', fill: '#1A1A22', stroke: '#FFE95A', 'stroke-width': 4, filter: 'url(#pg)'}); // tail
+  el('path', {d: 'M-108,0 Q-80,-30 10,-30 Q90,-28 118,6 Q100,30 10,30 Q-80,24 -108,0 Z', fill: '#16161E', stroke: '#2BE6A0', 'stroke-width': 4, filter: 'url(#pg)'});
+  for (let i = 0; i < 34; i++) el('circle', {cx: -90 + rnd() * 190, cy: -20 + rnd() * 40, r: 2 + rnd() * 3, fill: '#FFE95A', 'fill-opacity': .9});
+  el('ellipse', {cx: 104, cy: 22, rx: 16, ry: 9, fill: '#3A2A3E', stroke: '#FF5FD2', 'stroke-width': 3});   // the sucker mouth
+  el('circle', {cx: 84, cy: -10, r: 6, fill: '#fff'}); el('circle', {cx: 85, cy: -10, r: 3, fill: '#120008'});
+  el('path', {d: 'M30,26 Q20,48 -6,50', fill: 'none', stroke: '#FFE95A', 'stroke-width': 4, filter: 'url(#pg)'});  // pectoral fin
+})();
+</script></body></html>

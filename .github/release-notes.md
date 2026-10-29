@@ -9,7 +9,7 @@ The Mac app is Apple Silicon only. Intel Macs can [run from source](https://gith
 
 ## In the wig closet
 
-Glaaron · 🎩 Top Hat · Glaaron Magnifique · 👑 The Ultimate Glaaron (hair + hat + mustache) · 🥸 The Mustache · Neon Mustache · 🐭 **Mouse Ears** (new) · **Neon Mouse Ears** (new) · Disco Inferno · Synthwave Mullet · Cyber Mohawk · The Executive. Press **n** to cycle.
+Glaaron · 🎩 Top Hat · Glaaron Magnifique · 👑 The Ultimate Glaaron (hair + hat + mustache) · 🥸 The Mustache · Neon Mustache · Jeff Ears · Neon Jeff Ears (Jeff Mode) · 😎 **Shades** (new) · **Neon Shades** (new) · **Hoodie** (new) · Disco Inferno · Synthwave Mullet · Cyber Mohawk · The Executive. Press **n** to cycle.
 
 ## First launch
 
@@ -18,4 +18,4 @@ Glaaron · 🎩 Top Hat · Glaaron Magnifique · 👑 The Ultimate Glaaron (hair
 
 GlamCam opens a window called **GlamCam** with your wig on. To get it into Google Meet, capture that window in OBS and start OBS's virtual camera. Full steps (including the one-time OBS setup) are in the [README](https://github.com/jdonohoo/glamcam#-getting-started).
 
-Press **k** (or ⌘K / Ctrl+K) in the GlamCam window for the keys. **n** = next wig, **m** = add a mustache to any wig, **x** = hide your real hair, **f** = 🦇 Cave Mode (freeze the costume, kill the lights, lurk with glowing blue eyes). **1–4** = 🪩 neon props on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck.
+Press **k** (or ⌘K / Ctrl+K) in the GlamCam window for the keys. **n** = next wig, **m** = add a mustache to any wig, **f** = 🦇 Cave Mode (freeze the costume, kill the lights, lurk with glowing blue eyes). **1–4** = 🪩 neon props on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck. **5** = 🐠 the Aquarium, **t** = who's in it (Discus, Angelfish, Manta Ray, Pleco, Clownfish, Lionfish, Everybody). **o** = hoodie, **g** = sunglasses, **x** = Mike Mode.

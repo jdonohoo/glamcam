@@ -11,7 +11,8 @@ Keys (click the preview window first):
   b        background blur on/off                l      lighting match on/off
   x        hide your real hair on/off            f      cave mode: freeze the costume, lights off
   m        mustache on any wig (cycles)          k      floating keys window (cmd+K too)
-  1-4      neon props behind you (0 clears)
+  o        hoodie mode on/off                    g      sunglasses (cycles)
+  1-5      neon props behind you (0 clears)      t      who's in the aquarium (cycles)
   p        save the wig fit
   q/Esc    quit
 """
@@ -186,21 +187,61 @@ class Prop:
         self.x, self.top, self.height = meta["x"], meta["top"], meta["height"]
         self.bob = meta.get("bob", 0.0)  # floats up and down by this fraction of the frame
         self.flicker = meta.get("flicker", False)  # neon-sign stutter
-        self.image = cv2.imread(str(png_path), cv2.IMREAD_UNCHANGED)
-        if self.image is None or self.image.ndim != 3 or self.image.shape[2] != 4:
-            raise ValueError(f"{png_path} is not a transparent PNG")
+        self.images = {"default": self._load(png_path)}
+        for name, fname in meta.get("variants", {}).items():  # e.g. the reef version of the aquarium
+            self.images[name] = self._load(PROP_DIR / fname)
+        # optional animated swimmers (the aquarium): sprites live in props/sprites/
+        self.swim = meta.get("swimmers")
+        for f in self.all_fish():
+            f["images"] = [self._load(PROP_DIR / "sprites" / n) for n in f.get("frames", [f.get("sprite")])]
         self._sized = {}
 
-    def sized(self, frame_h):
-        if frame_h not in self._sized:
-            k = self.height * frame_h / self.image.shape[0]
-            self._sized[frame_h] = cv2.resize(self.image, None, fx=k, fy=k, interpolation=cv2.INTER_AREA)
-        return self._sized[frame_h]
+    @staticmethod
+    def _load(path):
+        img = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+        if img is None or img.ndim != 3 or img.shape[2] != 4:
+            raise ValueError(f"{path.name} is missing or not a transparent PNG")
+        return img
+
+    def all_fish(self):
+        return [f for school in (self.swim or {}).get("species", {}).values() for f in school]
+
+    def school(self, species):
+        """Fish for one species, or every species for "all"."""
+        everyone = self.swim["species"]
+        return self.all_fish() if species == "all" else everyone.get(species, everyone[self.swim["default"]])
+
+    def variant(self, species):
+        return (self.swim or {}).get("tank", {}).get(species, "default")
+
+    def sized(self, frame_h, variant="default"):
+        key = (frame_h, variant)
+        if key not in self._sized:
+            img = self.images.get(variant, self.images["default"])
+            k = self.height * frame_h / img.shape[0]
+            self._sized[key] = cv2.resize(img, None, fx=k, fy=k, interpolation=cv2.INTER_AREA)
+        return self._sized[key]
+
+    def fish_views(self, f, frame_h):
+        """Every animation frame of a fish, facing right / left / up / down, sized for this frame height."""
+        cache = f.setdefault("sized", {})
+        if frame_h not in cache:
+            frames = []
+            for img in f["images"]:
+                k = f["size"] * self.height * frame_h / img.shape[0]
+                right = cv2.resize(img, None, fx=k, fy=k, interpolation=cv2.INTER_AREA)
+                frames.append({"right": right, "left": cv2.flip(right, 1),
+                               "up": cv2.rotate(right, cv2.ROTATE_90_COUNTERCLOCKWISE),
+                               "down": cv2.rotate(right, cv2.ROTATE_90_CLOCKWISE)})
+            cache[frame_h] = frames
+        return cache[frame_h]
 
 
 def load_props():
     props = []
     for png in sorted(PROP_DIR.glob("*.png")):
+        if not png.with_suffix(".json").exists():  # e.g. aquarium-reef.png is a variant, not a prop
+            continue
         try:
             props.append(Prop(png))
         except (ValueError, KeyError, json.JSONDecodeError, OSError) as e:
@@ -265,6 +306,8 @@ class GlamRenderer:
         self.fits = json.loads(FIT_FILE.read_text()) if FIT_FILE.exists() else {}
         self.set_wig(wig)
         self.stache = None  # optional mustache layered on top of the wig
+        self.hoodie = None  # optional hoodie under everything (hides your hair)
+        self.glasses = None  # optional shades on top of everything
         self.blur = blur
         self.show_wig = True
         self.relight = relight  # off by default: the photo-lit glow is half the joke
@@ -277,6 +320,7 @@ class GlamRenderer:
         self.hair_mask = None
         self.pinned = False  # cave mode: freeze the costume in place, then lurk in the dark
         self.props = []  # neon objects on the wall behind you
+        self.species = "discus"  # who lives in the aquarium prop
 
         with quiet_native_logs():
             self._load_models()
@@ -407,22 +451,63 @@ class GlamRenderer:
             out = out * a + self._draw_props(out.copy(), ts) * (1 - a)
         return out.astype(np.uint8)
 
+    @staticmethod
+    def _blit(img, sprite, left, top, clip=None, alpha=1.0):
+        """Alpha-blend an RGBA sprite onto img at (left, top), optionally clipped to (x0, y0, x1, y1)."""
+        h, w = img.shape[:2]
+        cx0, cy0, cx1, cy1 = clip or (0, 0, w, h)
+        sh, sw = sprite.shape[:2]
+        x0, y0 = max(left, cx0, 0), max(top, cy0, 0)
+        x1, y1 = min(left + sw, cx1, w), min(top + sh, cy1, h)
+        if x0 >= x1 or y0 >= y1:
+            return
+        crop = sprite[y0 - top:y1 - top, x0 - left:x1 - left].astype(np.float32)
+        a = crop[..., 3:] / 255 * alpha
+        img[y0:y1, x0:x1] = crop[..., :3] * a + img[y0:y1, x0:x1] * (1 - a)
+
     def _draw_props(self, img, ts):
         h, w = img.shape[:2]
+        t = ts / 1000
         for pr in self.props:
-            p = pr.sized(h)
+            p = pr.sized(h, pr.variant(self.species) if pr.swim else "default")
             ph, pw = p.shape[:2]
-            top = int((pr.top + pr.bob * np.sin(ts / 1000 * 1.7)) * h)
+            top = int((pr.top + pr.bob * np.sin(t * 1.7)) * h)
             left = int(pr.x * w - pw / 2)
-            x0, y0, x1, y1 = max(left, 0), max(top, 0), min(left + pw, w), min(top + ph, h)
-            if x0 >= x1 or y0 >= y1:
-                continue
-            crop = p[y0 - top:y1 - top, x0 - left:x1 - left].astype(np.float32)
-            a = crop[..., 3:] / 255
-            if pr.flicker and (ts // 70 * 2654435761) % 100 < 4:  # the occasional neon stutter
-                a *= 0.3
-            img[y0:y1, x0:x1] = crop[..., :3] * a + img[y0:y1, x0:x1] * (1 - a)
+            stutter = pr.flicker and (ts // 70 * 2654435761) % 100 < 4  # the occasional neon stutter
+            self._blit(img, p, left, top, alpha=0.3 if stutter else 1.0)
+            if pr.swim:
+                self._swim(img, pr, left, top, pw, ph, t)
         return img
+
+    def _swim(self, img, pr, left, top, pw, ph, t):
+        """Fish cruise back and forth inside the tank, turning at the glass; bubbles rise."""
+        ax0, ay0, ax1, ay1 = pr.swim["area"]
+        area = (left + int(ax0 * pw), top + int(ay0 * ph), left + int(ax1 * pw), top + int(ay1 * ph))
+        aw, ah = area[2] - area[0], area[3] - area[1]
+        for i, f in enumerate(pr.school(self.species)):
+            frames = pr.fish_views(f, img.shape[0])
+            views = frames[int(t * f.get("fps", 0) + i) % len(frames)]  # flapping mantas flip through frames
+            mode = f.get("mode", "swim")
+            pos = (t * f["speed"] * 2 + f["phase"]) % 2  # 0..1 heading one way, 1..2 heading back
+            if mode == "crawl":  # plecos: stop, scoot, stop, scoot
+                k = pos * 4
+                pos = (np.floor(k) + np.clip((k % 1 - 0.5) * 2, 0, 1)) / 4
+            u = pos if pos < 1 else 2 - pos
+            if mode == "glass":  # suckered onto the side glass, inching up and down
+                sprite = views["up"] if pos < 1 else views["down"]
+                fh, fw = sprite.shape[:2]
+                x, y = area[2] - fw - 4, area[3] - fh - int(u * max(ah - fh, 1))
+            else:
+                sprite = views["right"] if pos < 1 else views["left"]
+                fh, fw = sprite.shape[:2]
+                x = area[0] + int(u * max(aw - fw, 1))
+                y = area[1] + int(f["y"] * max(ah - fh, 1) + np.sin(t * 1.1 + i * 2.1) * f.get("bob", 0.05) * ah)
+            self._blit(img, sprite, x, y, clip=area)
+        for i in range(pr.swim.get("bubbles", 0)):  # little rising rings near the kelp and the chest
+            bx = area[0] + int(aw * (0.06 + 0.88 * ((i * 0.37) % 1)) + 4 * np.sin(t * 3 + i))
+            by = area[3] - int(((t * 0.18 + i * 0.29) % 1) * ah)
+            r = max(2, int(ah * (0.008 + 0.006 * (i % 3))))
+            cv2.circle(img, (bx, by), r, (255, 250, 210), max(1, r // 3), cv2.LINE_AA)
 
     def _draw_wig(self, frame, wig=None, gain=None):
         wig = wig or self.wig
@@ -450,9 +535,12 @@ class GlamRenderer:
         self._match_lighting(frame)
         out = self._composite(frame, image, ts)
         if self.show_wig and self.face is not None:
-            out = self._draw_wig(out, self.wig, self.gain)
-            if self.stache is not None and self.stache is not self.wig:
-                out = self._draw_wig(out, self.stache)
+            drawn = set()
+            for layer in (self.hoodie, self.wig, self.stache, self.glasses):  # bottom to top
+                if layer is None or layer.id in drawn:
+                    continue
+                drawn.add(layer.id)
+                out = self._draw_wig(out, layer, self.gain if layer is self.wig else None)
         if self.pinned and self.face is not None:
             out = self._cave_eyes(out, frame, ts)
         return out
@@ -542,8 +630,9 @@ def draw_hud(img, text, y=34):
 
 
 HELP = [("w a s d", "move the wig"), ("- / =", "shrink / grow"), ("n", "next wig"), ("m", "mustache on any wig"),
+        ("o", "hoodie mode"), ("g", "sunglasses"),
         ("x", "hide my real hair"), ("f", "cave mode (glowing eyes)"), ("b", "background blur"),
-        ("1 2 3 4", "neon props (0 = none)"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
+        ("1 - 5", "neon props (0 = none)"), ("t", "aquarium fish"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
         ("k  cmd+K", "this window"),
         ("q", "quit")]
 KEYS_WINDOW = "GlamCam Keys"
@@ -632,7 +721,17 @@ def run(args):
     hud_until = 0 if args.obs_window else time.monotonic() + 4
     win_state, keys_state = {}, {}
     staches = [None] + [wg for wg in wigs if wg.kind == "mustache"]
+    hoodies = [None] + [wg for wg in wigs if wg.kind == "hoodie"]
+    shades = [None] + [wg for wg in wigs if wg.kind == "glasses"]
+    if args.hoodie:
+        renderer.hoodie = hoodies[1] if len(hoodies) > 1 else None
+    if args.glasses:
+        renderer.glasses = next((wg for wg in shades[1:] if wg.id == args.glasses), None)
     props = {pr.key: pr for pr in load_props()}
+    tank = next((pr for pr in props.values() if pr.swim), None)
+    species = tank.swim["order"] if tank else ["discus"]
+    if args.aquarium in species:
+        renderer.species = args.aquarium
     for pid in filter(None, (args.props or "").split(",")):
         pr = next((p for p in props.values() if p.id == pid.strip()), None)
         if pr:
@@ -673,8 +772,17 @@ def run(args):
                 pr = props[chr(k)]
                 renderer.props = [p for p in renderer.props if p is not pr] if pr in renderer.props \
                     else sorted(renderer.props + [pr], key=lambda p: p.key)
+            elif k == ord("t"):  # who's in the tank
+                renderer.species = species[(species.index(renderer.species) + 1) % len(species)]
+                print(f"Aquarium: {tank.swim['names'].get(renderer.species, renderer.species) if tank else renderer.species}")
+                if tank and tank not in renderer.props:
+                    renderer.props = sorted(renderer.props + [tank], key=lambda p: p.key)
             elif k == ord("m"):
                 renderer.stache = staches[(staches.index(renderer.stache) + 1) % len(staches)]
+            elif k == ord("o"):
+                renderer.hoodie = hoodies[(hoodies.index(renderer.hoodie) + 1) % len(hoodies)]
+            elif k == ord("g"):
+                renderer.glasses = shades[(shades.index(renderer.glasses) + 1) % len(shades)]
             elif k == ord("b"):
                 renderer.blur = not renderer.blur
             elif k == ord("x"):
@@ -711,6 +819,9 @@ def self_test():
         raise RuntimeError("no wigs bundled")
     r = GlamRenderer(wigs[0], relight=True, hide_hair=True)
     r.stache = next((wg for wg in wigs if wg.kind == "mustache"), None)
+    r.hoodie = next((wg for wg in wigs if wg.kind == "hoodie"), None)
+    r.glasses = next((wg for wg in wigs if wg.kind == "glasses"), None)
+    r.species = "all"
     r.props = load_props()
     frame = np.full((720, 1280, 3), 128, np.uint8)
     for k in range(3):
@@ -735,7 +846,11 @@ def main():
     ap.add_argument("--match-lighting", action="store_true", help="dim/brighten photo wigs to match your room")
     ap.add_argument("--hide-hair", action="store_true", help="start with your real hair painted out")
     ap.add_argument("--mustache", metavar="NAME", help="start with this mustache layered on (mustache, neon-mustache)")
+    ap.add_argument("--hoodie", action="store_true", help="start in hoodie mode")
+    ap.add_argument("--glasses", metavar="NAME", help="start with sunglasses on: shades, neon-shades")
     ap.add_argument("--props", metavar="IDS", help="neon props to start with, comma-separated (see props/)")
+    ap.add_argument("--aquarium", metavar="FISH", help="who lives in the aquarium: discus, angelfish, manta, pleco, "
+                                                        "clownfish, lionfish, all")
     ap.add_argument("--smooth", type=float, default=0.5, help="0 = raw tracking, 0.9 = very smooth/laggy")
     ap.add_argument("--no-vcam", action="store_true", help="preview only, don't send to the virtual camera")
     ap.add_argument("--obs-window", action="store_true",

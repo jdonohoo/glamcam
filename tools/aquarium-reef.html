@@ -1,0 +1,94 @@
+<!-- Source for props/aquarium-reef.png and props/sprites/{clownfish,lionfish}.png (render like tools/aquarium.html). -->
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:transparent}.p{display:inline-block;padding:40px}</style></head><body>
+<div class="p" id="reef"><svg width="1100" height="640" viewBox="0 0 1100 640"></svg></div><br>
+<div class="p" id="clown"><svg width="220" height="150" viewBox="-110 -75 220 150"></svg></div>
+<div class="p" id="lion"><svg width="260" height="260" viewBox="-120 -140 240 260"></svg></div>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const mk = (svg) => (n, a, p = svg) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); p.appendChild(e); return e; };
+let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+// ---------- the tank
+(() => {
+  const svg = document.querySelector('#reef svg'), el = mk(svg);
+  const defs = el('defs', {});
+  defs.innerHTML = `
+   <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B4F7A" stop-opacity=".62"/><stop offset="1" stop-color="#0A1238" stop-opacity=".82"/></linearGradient>
+   <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFFBFF" stop-opacity=".22"/><stop offset="1" stop-color="#BFFBFF" stop-opacity="0"/></linearGradient>
+   <clipPath id="inside"><rect x="30" y="48" width="1040" height="562" rx="14"/></clipPath>
+   <filter id="glow" x="-10%" y="-10%" width="120%" height="120%" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  el('rect', {x: 30, y: 48, width: 1040, height: 562, rx: 14, fill: 'url(#water)'});
+  const inside = el('g', {'clip-path': 'url(#inside)'});
+  // light rays
+  [[120, 90], [380, 70], [640, 110], [880, 80]].forEach(([x, w]) => el('polygon', {points: `${x},48 ${x + w},48 ${x + w + 140},610 ${x + 60},610`, fill: 'url(#ray)'}, inside));
+  // coral: branching antlers, brain coral, a sea fan, an anemone
+  const branch = (x, y, len, ang, w, c, depth) => {
+    if (depth === 0 || len < 8) return;
+    const x2 = x + Math.cos(ang) * len, y2 = y - Math.sin(ang) * len;
+    el('line', {x1: x, y1: y, x2, y2, stroke: c, 'stroke-width': w, 'stroke-linecap': 'round', filter: 'url(#glow)'}, inside);
+    branch(x2, y2, len * .72, ang + .45 + (rnd() - .5) * .3, w * .78, c, depth - 1);
+    branch(x2, y2, len * .72, ang - .45 + (rnd() - .5) * .3, w * .78, c, depth - 1);
+  };
+  branch(150, 585, 70, Math.PI / 2, 12, '#FF7A3D', 5);
+  branch(860, 585, 80, Math.PI / 2 + .1, 13, '#FF5FD2', 5);
+  branch(1010, 585, 55, Math.PI / 2 - .2, 10, '#FFE95A', 4);
+  // brain coral
+  el('ellipse', {cx: 330, cy: 570, rx: 70, ry: 44, fill: '#3A1A4A', stroke: '#B97BFF', 'stroke-width': 5, filter: 'url(#glow)'}, inside);
+  for (let i = 0; i < 5; i++) { let d = `M${270 + i * 5},${548 + i * 9}`; for (let x = 0; x < 6; x++) d += ` q10,${x % 2 ? 8 : -8} 20,0`;
+    el('path', {d, fill: 'none', stroke: '#E0C2FF', 'stroke-width': 3, opacity: .8}, inside); }
+  // sea fan
+  const fan = el('g', {transform: 'translate(560 590)', filter: 'url(#glow)'}, inside);
+  for (let a = 20; a <= 160; a += 14) { const r = 150 + rnd() * 30;
+    el('line', {x1: 0, y1: 0, x2: Math.cos(a * Math.PI / 180) * r, y2: -Math.sin(a * Math.PI / 180) * r, stroke: '#FF3B6B', 'stroke-width': 3}, fan); }
+  for (let r = 50; r <= 160; r += 28) el('path', {d: `M${-r},0 A${r},${r} 0 0 1 ${r},0`, fill: 'none', stroke: '#FF3B6B', 'stroke-width': 2, opacity: .7, transform: 'scale(1 .98)'}, fan);
+  // anemone (the clownfish's house)
+  const an = el('g', {transform: 'translate(700 592)', filter: 'url(#glow)'}, inside);
+  el('ellipse', {cx: 0, cy: -6, rx: 46, ry: 14, fill: '#2A1440', stroke: '#9BF7FF', 'stroke-width': 3}, an);
+  for (let i = 0; i < 16; i++) { const x = -42 + i * 5.6, h = 50 + rnd() * 30, sway = (rnd() - .5) * 30;
+    el('path', {d: `M${x},-10 Q${x + sway},${-h / 2} ${x + sway / 2},${-h}`, fill: 'none', stroke: i % 2 ? '#9BF7FF' : '#FF9BE6', 'stroke-width': 5, 'stroke-linecap': 'round'}, an); }
+  // gravel
+  const gcol = ['#FF5FD2', '#00F0FF', '#FFE95A', '#7D56F4', '#FF9BE6', '#9BF7FF'];
+  el('rect', {x: 30, y: 568, width: 1040, height: 50, fill: '#1A0B2E'}, inside);
+  for (let i = 0; i < 520; i++) el('ellipse', {cx: 30 + rnd() * 1040, cy: 570 + rnd() * 40, rx: 4 + rnd() * 7, ry: 3 + rnd() * 4, fill: gcol[Math.floor(rnd() * gcol.length)], 'fill-opacity': .55 + rnd() * .4}, inside);
+  // a little neon treasure chest, because tradition
+  const chest = el('g', {transform: 'translate(410 538)', filter: 'url(#glow)'}, inside);
+  el('rect', {x: 0, y: 14, width: 86, height: 46, rx: 6, fill: '#3A1A10', stroke: '#FFE95A', 'stroke-width': 4}, chest);
+  el('path', {d: 'M0,18 Q43,-18 86,18', fill: '#4A2214', stroke: '#FFE95A', 'stroke-width': 4}, chest);
+  el('rect', {x: 37, y: 26, width: 12, height: 14, fill: '#FFE95A'}, chest);
+  // glass glare
+  el('polygon', {points: '60,70 110,70 40,300 30,300', fill: '#FFFFFF', 'fill-opacity': .08}, inside);
+  // neon frame + lid
+  el('rect', {x: 30, y: 48, width: 1040, height: 562, rx: 14, fill: 'none', stroke: '#00F0FF', 'stroke-width': 9, filter: 'url(#glow)'});
+  el('rect', {x: 14, y: 22, width: 1072, height: 30, rx: 10, fill: '#140A2E', stroke: '#FF5FD2', 'stroke-width': 7, filter: 'url(#glow)'});
+  el('rect', {x: 40, y: 606, width: 1020, height: 16, rx: 6, fill: '#140A2E', stroke: '#FF5FD2', 'stroke-width': 6, filter: 'url(#glow)'});
+})();
+
+
+// clownfish, facing right
+(() => {
+  const svg = document.querySelector('#clown svg'), el = mk(svg);
+  el('defs', {}).innerHTML = `<clipPath id="cb"><path d="M-62,0 Q-40,-38 20,-36 Q66,-30 80,0 Q66,30 20,36 Q-40,38 -62,0 Z"/></clipPath>
+   <filter id="cg" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  const fin = (d) => el('path', {d, fill: '#FF8A2A', stroke: '#1A0A00', 'stroke-width': 4, filter: 'url(#cg)'});
+  fin('M-60,0 L-96,-28 Q-88,0 -96,28 Z'); fin('M-20,-34 Q10,-66 40,-32 Z'); fin('M-10,34 Q14,58 34,32 Z');
+  el('path', {d: 'M-62,0 Q-40,-38 20,-36 Q66,-30 80,0 Q66,30 20,36 Q-40,38 -62,0 Z', fill: '#FF7A1A', stroke: '#FFB066', 'stroke-width': 3, filter: 'url(#cg)'});
+  const g = el('g', {'clip-path': 'url(#cb)'});
+  [[50, 14], [6, 18], [-40, 14]].forEach(([x, w]) => { el('rect', {x: x - w / 2 - 4, y: -50, width: w + 8, height: 100, fill: '#120700'}, g); el('rect', {x: x - w / 2, y: -50, width: w, height: 100, fill: '#FFFFFF'}, g); });
+  el('circle', {cx: 62, cy: -8, r: 7, fill: '#fff'}); el('circle', {cx: 63, cy: -8, r: 4, fill: '#120008'});
+})();
+// lionfish, facing right: red/white stripes, fan pectoral fins, tall spines
+(() => {
+  const svg = document.querySelector('#lion svg'), el = mk(svg);
+  el('defs', {}).innerHTML = `<clipPath id="lb"><path d="M-60,0 Q-30,-34 30,-30 Q74,-20 84,4 Q70,26 30,30 Q-30,32 -60,0 Z"/></clipPath>
+   <filter id="lg" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  for (let i = 0; i < 9; i++) { const x = -40 + i * 11, h = 70 + (i % 3) * 18;   // dorsal spines
+    el('line', {x1: x, y1: -26, x2: x - 14, y2: -26 - h, stroke: i % 2 ? '#FFFFFF' : '#FF3B3B', 'stroke-width': 3, filter: 'url(#lg)'}); }
+  for (let i = 0; i < 11; i++) { const a = (200 + i * 12) * Math.PI / 180, r = 90 + (i % 2) * 14;  // fan pectoral fin
+    el('path', {d: `M10,14 L${10 + Math.cos(a) * r},${14 - Math.sin(a) * r}`, stroke: i % 2 ? '#FFD0D0' : '#FF3B3B', 'stroke-width': 4, 'stroke-linecap': 'round', filter: 'url(#lg)'}); }
+  el('path', {d: 'M10,14 L-70,90 Q-30,110 30,100 Z', fill: '#FF6B6B', 'fill-opacity': .35});
+  el('path', {d: 'M-58,0 L-92,-26 Q-84,0 -92,26 Z', fill: '#FFB0B0', 'fill-opacity': .7, stroke: '#FF3B3B', 'stroke-width': 3, filter: 'url(#lg)'});
+  el('path', {d: 'M-60,0 Q-30,-34 30,-30 Q74,-20 84,4 Q70,26 30,30 Q-30,32 -60,0 Z', fill: '#FFF2EE', stroke: '#FF5FD2', 'stroke-width': 4, filter: 'url(#lg)'});
+  const g = el('g', {'clip-path': 'url(#lb)'});
+  for (let x = -66; x < 90; x += 16) el('rect', {x, y: -40, width: 8, height: 80, fill: '#E01F2F', transform: `skewX(-12)`}, g);
+  el('circle', {cx: 66, cy: -6, r: 6, fill: '#FFE95A'}); el('circle', {cx: 67, cy: -6, r: 3, fill: '#120008'});
+})();
+</script></body></html>

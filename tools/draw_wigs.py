@@ -388,7 +388,7 @@ def ultimate_glaaron():
     finish(img, "ultimate-glaaron", "The Ultimate Glaaron", 4, glow=14, under=under)
 
 
-def draw_mouse_ears(d, neon_style):
+def draw_jeff_ears(d, neon_style):
     """Two round ears on a headband that hugs the top of the head."""
     band_box = [*P(-222, -282), *P(222, 190)]  # ellipse following the skull; we draw its top arc
     centers = [(-178, -338), (178, -338)]
@@ -410,18 +410,78 @@ def draw_mouse_ears(d, neon_style):
                   fill=(120, 120, 135, 255), width=int(10 * SS))
 
 
-def mouse_ears():
-    """Classic black mouse ears. Squeaky clean."""
+def jeff_ears():
+    """Classic black round ears on a headband. Jeff Mode."""
     img = canvas()
-    draw_mouse_ears(ImageDraw.Draw(img), neon_style=False)
-    finish(img, "mouse-ears", "Mouse Ears", 7, glow=0)
+    draw_jeff_ears(ImageDraw.Draw(img), neon_style=False)
+    finish(img, "jeff-ears", "Jeff Ears", 7, glow=0)
 
 
-def neon_mouse_ears():
-    """The same ears, plugged in."""
+def neon_jeff_ears():
+    """Jeff Mode, plugged in."""
     img = canvas()
-    draw_mouse_ears(ImageDraw.Draw(img), neon_style=True)
-    finish(img, "neon-mouse-ears", "Neon Mouse Ears", 8, glow=14, glow_strength=1.2)
+    draw_jeff_ears(ImageDraw.Draw(img), neon_style=True)
+    finish(img, "neon-jeff-ears", "Neon Jeff Ears", 8, glow=14, glow_strength=1.2)
+
+
+def hoodie():
+    """A sleek black athletic hoodie with a neon Onboard logo. The hood hides your hair."""
+    img = canvas()
+    d = ImageDraw.Draw(img)
+    black, edge, seam = (16, 16, 20, 255), (44, 44, 52, 255), (34, 34, 40, 255)
+    # body and shoulders, then the hood around the head
+    d.polygon([P(-235, 230), P(235, 230), P(470, 600), P(-470, 600)], fill=black)
+    d.ellipse([*P(-470, 430), *P(470, 760)], fill=black)
+    d.ellipse([*P(-305, -360), *P(305, 330)], fill=black)
+    # soft fabric shading: a lighter sheen down one side of the hood
+    sheen = Image.new("L", img.size, 0)
+    ImageDraw.Draw(sheen).ellipse([*P(-290, -330), *P(-120, 250)], fill=46)
+    sheen = sheen.filter(ImageFilter.GaussianBlur(40 * SS))
+    img.paste(Image.new("RGBA", img.size, (80, 80, 92, 255)), (0, 0), ImageChops.multiply(sheen, img.getchannel("A")))
+    d = ImageDraw.Draw(img)
+    d.line([P(0, -358), P(0, -170)], fill=seam, width=int(4 * SS))  # center seam over the top of the hood
+    # the face opening with a rolled edge
+    d.ellipse([*P(-202, -172), *P(202, 318)], fill=edge)
+    hole = Image.new("L", img.size, 0)
+    ImageDraw.Draw(hole).ellipse([*P(-186, -152), *P(186, 300)], fill=255)
+    hole = hole.filter(ImageFilter.GaussianBlur(2 * SS))
+    img.putalpha(ImageChops.multiply(img.getchannel("A"), ImageChops.invert(hole)))
+    d = ImageDraw.Draw(img)
+    # drawstrings with metal tips
+    for side in (-1, 1):
+        strand(d, [(side * 58, 300), (side * 66, 360), (side * 60, 420), (side * 70, 470)], 7,
+               [(200, 200, 210, 255), (230, 230, 238, 255)])
+        d.rounded_rectangle([*P(side * 70 - 7, 468), *P(side * 70 + 7, 500)], radius=3 * SS, fill=(170, 170, 185, 255))
+    # neon Onboard logo on the chest
+    logo = Image.open(REPO / "tools" / "onboard-logo.png").convert("RGBA")
+    lw = int(300 * SS)
+    logo = logo.resize((lw, int(logo.height * lw / logo.width)), Image.LANCZOS)
+    cx, cy = P(0, 520)
+    img.alpha_composite(logo, (int(cx - logo.width / 2), int(cy - logo.height / 2)))
+    finish(img, "hoodie", "Hoodie", 9, glow=0, kind="hoodie")
+
+
+def shades(neon_style):
+    """Wayfarer-ish sunglasses sitting on the canonical eyes."""
+    img = canvas()
+    d = ImageDraw.Draw(img)
+    lens = [(-194, -30), (-18, -30), (-22, 34), (-44, 82), (-100, 94), (-158, 86), (-188, 54)]
+    frame = (0, 240, 255, 255) if neon_style else (12, 12, 16, 255)
+    glass = (60, 18, 90, 240) if neon_style else (20, 20, 26, 252)
+    for side in (-1, 1):
+        pts = [P(side * x, y) for x, y in lens]
+        d.polygon(pts, fill=glass)
+        d.line(pts + [pts[0]], fill=frame, width=int((7 if neon_style else 11) * SS), joint="curve")
+        # reflections
+        glare = (255, 95, 210, 150) if neon_style else (255, 255, 255, 70)
+        d.line([P(side * 156, 66), P(side * 116, -6)], fill=glare, width=int(11 * SS))
+        d.line([P(side * 122, 74), P(side * 94, 22)], fill=glare, width=int(6 * SS))
+        d.line([P(side * 194, -22), P(side * 212, -12)], fill=frame, width=int(10 * SS))  # arms heading back
+    d.line([P(-20, -8), P(0, -14), P(20, -8)], fill=frame, width=int(9 * SS), joint="curve")  # bridge
+    if neon_style:
+        finish(img, "neon-shades", "Neon Shades", 8.6, glow=10, glow_strength=1.2, kind="glasses")
+    else:
+        finish(img, "shades", "Shades", 8.3, glow=0, kind="glasses")
 
 
 if __name__ == "__main__":
@@ -435,5 +495,8 @@ if __name__ == "__main__":
     stache_brown()
     stache_neon()
     ultimate_glaaron()
-    mouse_ears()
-    neon_mouse_ears()
+    jeff_ears()
+    neon_jeff_ears()
+    shades(neon_style=False)
+    shades(neon_style=True)
+    hoodie()

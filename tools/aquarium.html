@@ -1,0 +1,76 @@
+<!-- Source for props/aquarium.png and props/sprites/discus-*.png. Render each #id element to a
+     transparent PNG (Playwright: element.screenshot({omitBackground: true})) and crop to its bounding box. -->
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:transparent}.p{display:inline-block;padding:40px}</style></head><body>
+<div class="p" id="tank"><svg width="1100" height="640" viewBox="0 0 1100 640"></svg></div><br>
+<div class="p" id="fish1"><svg width="230" height="210" viewBox="-115 -105 230 210"></svg></div>
+<div class="p" id="fish2"><svg width="230" height="210" viewBox="-115 -105 230 210"></svg></div>
+<div class="p" id="fish3"><svg width="230" height="210" viewBox="-115 -105 230 210"></svg></div>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const mk = (svg) => (n, a, p = svg) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); p.appendChild(e); return e; };
+let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+// ---------- the tank
+(() => {
+  const svg = document.querySelector('#tank svg'), el = mk(svg);
+  const defs = el('defs', {});
+  defs.innerHTML = `
+   <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B4F7A" stop-opacity=".62"/><stop offset="1" stop-color="#0A1238" stop-opacity=".82"/></linearGradient>
+   <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFFBFF" stop-opacity=".22"/><stop offset="1" stop-color="#BFFBFF" stop-opacity="0"/></linearGradient>
+   <clipPath id="inside"><rect x="30" y="48" width="1040" height="562" rx="14"/></clipPath>
+   <filter id="glow" x="-10%" y="-10%" width="120%" height="120%" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  el('rect', {x: 30, y: 48, width: 1040, height: 562, rx: 14, fill: 'url(#water)'});
+  const inside = el('g', {'clip-path': 'url(#inside)'});
+  // light rays
+  [[120, 90], [380, 70], [640, 110], [880, 80]].forEach(([x, w]) => el('polygon', {points: `${x},48 ${x + w},48 ${x + w + 140},610 ${x + 60},610`, fill: 'url(#ray)'}, inside));
+  // kelp
+  const kelp = (x, h, c, sway) => { let d = `M${x},590`; for (let y = 590, i = 0; y > 590 - h; y -= 40, i++) d += ` Q${x + (i % 2 ? sway : -sway)},${y - 20} ${x},${y - 40}`;
+    el('path', {d, fill: 'none', stroke: c, 'stroke-width': 9, 'stroke-linecap': 'round', filter: 'url(#glow)'}, inside); };
+  kelp(90, 360, '#39FF88', 26); kelp(140, 250, '#2BE6A0', 20); kelp(980, 400, '#39FF88', 28); kelp(1030, 280, '#7DFFB5', 18); kelp(560, 160, '#2BE6A0', 16);
+  // gravel
+  const gcol = ['#FF5FD2', '#00F0FF', '#FFE95A', '#7D56F4', '#FF9BE6', '#9BF7FF'];
+  el('rect', {x: 30, y: 568, width: 1040, height: 50, fill: '#1A0B2E'}, inside);
+  for (let i = 0; i < 520; i++) el('ellipse', {cx: 30 + rnd() * 1040, cy: 570 + rnd() * 40, rx: 4 + rnd() * 7, ry: 3 + rnd() * 4, fill: gcol[Math.floor(rnd() * gcol.length)], 'fill-opacity': .55 + rnd() * .4}, inside);
+  // a little neon treasure chest, because tradition
+  const chest = el('g', {transform: 'translate(760 538)', filter: 'url(#glow)'}, inside);
+  el('rect', {x: 0, y: 14, width: 86, height: 46, rx: 6, fill: '#3A1A10', stroke: '#FFE95A', 'stroke-width': 4}, chest);
+  el('path', {d: 'M0,18 Q43,-18 86,18', fill: '#4A2214', stroke: '#FFE95A', 'stroke-width': 4}, chest);
+  el('rect', {x: 37, y: 26, width: 12, height: 14, fill: '#FFE95A'}, chest);
+  // glass glare
+  el('polygon', {points: '60,70 110,70 40,300 30,300', fill: '#FFFFFF', 'fill-opacity': .08}, inside);
+  // neon frame + lid
+  el('rect', {x: 30, y: 48, width: 1040, height: 562, rx: 14, fill: 'none', stroke: '#00F0FF', 'stroke-width': 9, filter: 'url(#glow)'});
+  el('rect', {x: 14, y: 22, width: 1072, height: 30, rx: 10, fill: '#140A2E', stroke: '#FF5FD2', 'stroke-width': 7, filter: 'url(#glow)'});
+  el('rect', {x: 40, y: 606, width: 1020, height: 16, rx: 6, fill: '#140A2E', stroke: '#FF5FD2', 'stroke-width': 6, filter: 'url(#glow)'});
+})();
+
+// ---------- discus fish (facing right)
+const fish = (id, body, line, fin, glowc, speckle) => {
+  const svg = document.querySelector(`#${id} svg`), el = mk(svg);
+  const defs = el('defs', {});
+  defs.innerHTML = `<clipPath id="${id}b"><ellipse cx="0" cy="0" rx="72" ry="66"/></clipPath>
+   <radialGradient id="${id}g" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient>
+   <filter id="${id}f" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  // tail, then the big rounded dorsal/anal fin skirt, then the disc body
+  el('path', {d: 'M-70,0 L-104,-30 Q-96,0 -104,30 Z', fill: fin, 'fill-opacity': .8, stroke: glowc, 'stroke-width': 3, filter: `url(#${id}f)`});
+  el('ellipse', {cx: -4, cy: 0, rx: 84, ry: 80, fill: fin, 'fill-opacity': .55, stroke: glowc, 'stroke-width': 3, filter: `url(#${id}f)`});
+  el('ellipse', {cx: 0, cy: 0, rx: 72, ry: 66, fill: body});
+  const g = el('g', {'clip-path': `url(#${id}b)`});
+  for (let y = -66; y <= 66; y += 15) {
+    let d = `M-80,${y}`; for (let x = -80; x <= 80; x += 20) d += ` Q${x + 10},${y + (((x / 20) % 2) ? 7 : -7)} ${x + 20},${y}`;
+    el('path', {d, fill: 'none', stroke: line, 'stroke-width': 5, 'stroke-opacity': .85}, g);
+  }
+  if (speckle) for (let i = 0; i < 40; i++) el('circle', {cx: -60 + rnd() * 120, cy: -55 + rnd() * 110, r: 1.5 + rnd() * 2.5, fill: speckle, 'fill-opacity': .8}, g);
+  for (let x = -40; x <= 40; x += 26) el('rect', {x, y: -70, width: 7, height: 140, fill: '#000', 'fill-opacity': .13}, g);  // faint vertical bars
+  el('ellipse', {cx: 0, cy: 0, rx: 72, ry: 66, fill: `url(#${id}g)`});
+  el('ellipse', {cx: 0, cy: 0, rx: 72, ry: 66, fill: 'none', stroke: glowc, 'stroke-width': 4, filter: `url(#${id}f)`});
+  // eye (discus have red eyes) and mouth
+  el('circle', {cx: 46, cy: -14, r: 11, fill: '#FF2E4D', stroke: '#fff', 'stroke-width': 2});
+  el('circle', {cx: 48, cy: -14, r: 5, fill: '#120008'});
+  el('circle', {cx: 50, cy: -17, r: 2, fill: '#fff'});
+  el('path', {d: 'M70,8 q6,2 2,7', fill: 'none', stroke: '#fff', 'stroke-width': 2.5, 'stroke-linecap': 'round'});
+};
+fish('fish1', '#19D9FF', '#1F4BFF', '#6FF2FF', '#00F0FF', null);            // turquoise
+fish('fish2', '#FF6A3D', '#FFD23D', '#FF9B6A', '#FF5FD2', '#FFF4C0');       // red pigeon blood
+fish('fish3', '#FF5FD2', '#8A4DFF', '#FFA6EC', '#FF5FD2', '#FFFFFF');       // hot pink
+</script></body></html>

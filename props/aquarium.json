@@ -1,0 +1,153 @@
+{
+ "name": "Aquarium",
+ "key": "5",
+ "x": 0.5,
+ "top": 0.4,
+ "height": 0.56,
+ "variants": {
+  "reef": "aquarium-reef.png"
+ },
+ "swimmers": {
+  "area": [
+   0.07,
+   0.13,
+   0.93,
+   0.84
+  ],
+  "bubbles": 9,
+  "default": "discus",
+  "order": [
+   "discus",
+   "angelfish",
+   "manta",
+   "pleco",
+   "clownfish",
+   "lionfish",
+   "all"
+  ],
+  "names": {
+   "discus": "Discus",
+   "angelfish": "Angelfish",
+   "manta": "Manta Ray",
+   "pleco": "Pleco",
+   "clownfish": "Clownfish",
+   "lionfish": "Lionfish",
+   "all": "Everybody"
+  },
+  "tank": {
+   "manta": "reef",
+   "clownfish": "reef",
+   "lionfish": "reef",
+   "all": "reef"
+  },
+  "species": {
+   "discus": [
+    {
+     "sprite": "discus-turquoise.png",
+     "size": 0.22,
+     "speed": 0.07,
+     "y": 0.22,
+     "phase": 0.1
+    },
+    {
+     "sprite": "discus-red.png",
+     "size": 0.2,
+     "speed": 0.05,
+     "y": 0.62,
+     "phase": 0.7
+    },
+    {
+     "sprite": "discus-pink.png",
+     "size": 0.18,
+     "speed": 0.09,
+     "y": 0.4,
+     "phase": 1.35
+    }
+   ],
+   "angelfish": [
+    {
+     "sprite": "angelfish-silver.png",
+     "size": 0.34,
+     "speed": 0.045,
+     "y": 0.25,
+     "phase": 0.3,
+     "bob": 0.09
+    },
+    {
+     "sprite": "angelfish-gold.png",
+     "size": 0.3,
+     "speed": 0.06,
+     "y": 0.55,
+     "phase": 1.1,
+     "bob": 0.09
+    }
+   ],
+   "manta": [
+    {
+     "frames": [
+      "manta-0.png",
+      "manta-1.png",
+      "manta-2.png",
+      "manta-3.png",
+      "manta-4.png",
+      "manta-5.png",
+      "manta-6.png",
+      "manta-7.png"
+     ],
+     "fps": 7,
+     "size": 0.2,
+     "speed": 0.05,
+     "y": 0.3,
+     "phase": 0.5,
+     "bob": 0.12
+    }
+   ],
+   "pleco": [
+    {
+     "sprite": "pleco.png",
+     "size": 0.12,
+     "speed": 0.03,
+     "y": 1.0,
+     "phase": 0.2,
+     "mode": "crawl"
+    },
+    {
+     "sprite": "pleco.png",
+     "size": 0.11,
+     "speed": 0.025,
+     "y": 0.5,
+     "phase": 0.9,
+     "mode": "glass"
+    }
+   ],
+   "clownfish": [
+    {
+     "sprite": "clownfish.png",
+     "size": 0.12,
+     "speed": 0.06,
+     "y": 0.78,
+     "phase": 0.2,
+     "bob": 0.04
+    },
+    {
+     "sprite": "clownfish.png",
+     "size": 0.1,
+     "speed": 0.075,
+     "y": 0.7,
+     "phase": 0.55,
+     "bob": 0.05
+    }
+   ],
+   "lionfish": [
+    {
+     "sprite": "lionfish.png",
+     "size": 0.32,
+     "speed": 0.025,
+     "y": 0.3,
+     "phase": 0.4,
+     "bob": 0.04
+    }
+   ]
+  }
+ }
+}
