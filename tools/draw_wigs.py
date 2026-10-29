@@ -388,6 +388,42 @@ def ultimate_glaaron():
     finish(img, "ultimate-glaaron", "The Ultimate Glaaron", 4, glow=14, under=under)
 
 
+def draw_mouse_ears(d, neon_style):
+    """Two round ears on a headband that hugs the top of the head."""
+    band_box = [*P(-222, -282), *P(222, 190)]  # ellipse following the skull; we draw its top arc
+    centers = [(-178, -338), (178, -338)]
+    r = 104
+    if neon_style:
+        pink, cyan = (255, 95, 210, 255), (0, 240, 255, 255)
+        d.arc(band_box, 198, 342, fill=cyan, width=int(16 * SS))
+        for cx, cy in centers:
+            d.ellipse([*P(cx - r, cy - r), *P(cx + r, cy + r)], fill=(40, 12, 60, 255), outline=pink,
+                      width=int(9 * SS))
+            d.ellipse([*P(cx - r + 26, cy - r + 26), *P(cx + r - 26, cy + r - 26)], outline=cyan,
+                      width=int(4 * SS))
+    else:
+        d.arc(band_box, 198, 342, fill=(14, 14, 18, 255), width=int(20 * SS))
+        for cx, cy in centers:
+            d.ellipse([*P(cx - r, cy - r), *P(cx + r, cy + r)], fill=(12, 12, 16, 255))
+            # glossy plastic highlight
+            d.arc([*P(cx - r + 18, cy - r + 18), *P(cx + r - 18, cy + r - 18)], 200, 260,
+                  fill=(120, 120, 135, 255), width=int(10 * SS))
+
+
+def mouse_ears():
+    """Classic black mouse ears. Squeaky clean."""
+    img = canvas()
+    draw_mouse_ears(ImageDraw.Draw(img), neon_style=False)
+    finish(img, "mouse-ears", "Mouse Ears", 7, glow=0)
+
+
+def neon_mouse_ears():
+    """The same ears, plugged in."""
+    img = canvas()
+    draw_mouse_ears(ImageDraw.Draw(img), neon_style=True)
+    finish(img, "neon-mouse-ears", "Neon Mouse Ears", 8, glow=14, glow_strength=1.2)
+
+
 if __name__ == "__main__":
     WIGS.mkdir(exist_ok=True)
     disco_inferno()
@@ -399,3 +435,5 @@ if __name__ == "__main__":
     stache_brown()
     stache_neon()
     ultimate_glaaron()
+    mouse_ears()
+    neon_mouse_ears()

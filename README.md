@@ -24,7 +24,7 @@ You know that one coworker with *the hair*? Flowing. Luminous. Shampoo-commercia
 
 It finds your face 30 times a second, glues a wig to your forehead (it follows you when you lean, tilt, nod, or dramatically turn away from a bad idea), blurs the pile of laundry behind you, and pipes the whole thing into Google Meet, Zoom, or Teams as a normal-looking camera.
 
-Ships with **Glaaron**, the hair that started it all, a **neon magician's top hat** (with rabbit), **two sweet, sweet mustaches**, **The Ultimate Glaaron** (hair + hat + mustache), and four neon wigs nobody asked for. Or [make your own](#-make-your-own-wig) from any photo.
+Ships with **Glaaron**, the hair that started it all, a **neon magician's top hat** (with rabbit), **two sweet, sweet mustaches**, **The Ultimate Glaaron** (hair + hat + mustache), **mouse ears** (classic and neon), and four neon wigs nobody asked for. Or [make your own](#-make-your-own-wig) from any photo.
 
 | | |
 |---|---|
@@ -44,7 +44,7 @@ Ships with **Glaaron**, the hair that started it all, a **neon magician's top ha
 
 ## The Wig Closet
 
-<p align="center"><img src="assets/closet.png" alt="Ten looks on a cartoon mascot: Glaaron, Top Hat, Glaaron Magnifique, Ultimate Glaaron, The Mustache, Neon Mustache, Disco Inferno, Synthwave Mullet, Cyber Mohawk, The Executive"></p>
+<p align="center"><img src="assets/closet.png" alt="Twelve looks on a cartoon mascot: Glaaron, Top Hat, Glaaron Magnifique, Ultimate Glaaron, The Mustache, Neon Mustache, Mouse Ears, Neon Mouse Ears, Disco Inferno, Synthwave Mullet, Cyber Mohawk, The Executive"></p>
 
 | Wig | `--wig` | Vibe |
 |---|---|---|
@@ -54,6 +54,8 @@ Ships with **Glaaron**, the hair that started it all, a **neon magician's top ha
 | The Ultimate Glaaron | `ultimate-glaaron` | Hair. Hat. Mustache. There is nothing left to add. |
 | The Mustache | `mustache` | A luxurious brown handlebar, waxed and twirled. Soup risk: high. |
 | Neon Mustache | `neon-mustache` | The same handlebar, bent out of glowing glass tubing. Visible from space. |
+| Mouse Ears | `mouse-ears` | Classic round black ears on a headband. Not affiliated with any famous rodent. |
+| Neon Mouse Ears | `neon-mouse-ears` | The same ears, plugged in. Parade ready. |
 | Disco Inferno | `disco-inferno` | Has a comb in it. The comb lives there now. |
 | Synthwave Mullet | `synthwave-mullet` | Business in the front, Miami Vice in the back. |
 | Cyber Mohawk | `cyber-mohawk` | Do not attempt doorways. |

@@ -9,7 +9,7 @@ The Mac app is Apple Silicon only. Intel Macs can [run from source](https://gith
 
 ## In the wig closet
 
-Glaaron · 🎩 Top Hat · Glaaron Magnifique · 👑 **The Ultimate Glaaron** (hair + hat + mustache, new) · 🥸 **The Mustache** (new) · **Neon Mustache** (new) · Disco Inferno · Synthwave Mullet · Cyber Mohawk · The Executive. Press **n** to cycle.
+Glaaron · 🎩 Top Hat · Glaaron Magnifique · 👑 The Ultimate Glaaron (hair + hat + mustache) · 🥸 The Mustache · Neon Mustache · 🐭 **Mouse Ears** (new) · **Neon Mouse Ears** (new) · Disco Inferno · Synthwave Mullet · Cyber Mohawk · The Executive. Press **n** to cycle.
 
 ## First launch
 
