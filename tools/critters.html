@@ -1,0 +1,50 @@
+<!-- Source for props/critters/*.png: 6-frame run cycles; crop each critter with one shared bounding box. -->
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:transparent}.p{display:inline-block;padding:20px}</style></head><body>
+<div id="frames"></div>
+<script>
+// Neon puppies and kittens, facing right, 6-frame run cycle (legs gallop, body bounces).
+const N = 6;
+const critters = {
+  'puppy-golden': {kind: 'puppy', body: '#F2B45A', belly: '#FFE2A8', line: '#FFE95A', ear: '#B9772F', nose: '#3A1A10'},
+  'puppy-neon':   {kind: 'puppy', body: '#1C1033', belly: '#2A1A4A', line: '#00F0FF', ear: '#FF5FD2', nose: '#FF5FD2'},
+  'kitten-orange':{kind: 'kitten', body: '#FF9B4A', belly: '#FFD9B0', line: '#FFB066', ear: '#FF9B4A', nose: '#FF6FA8', stripes: '#D66A20'},
+  'kitten-neon':  {kind: 'kitten', body: '#140A24', belly: '#22143A', line: '#FF5FD2', ear: '#140A24', nose: '#00F0FF', stripes: '#7D56F4'},
+};
+const leg = (x, y, ang, len, c, w, edge) => {
+  const a = ang * Math.PI / 180, x2 = x + Math.sin(a) * len, y2 = y + Math.cos(a) * len;
+  const l = (col, wd) => `<line x1="${x}" y1="${y}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="${wd}" stroke-linecap="round"/>`;
+  return l(edge, w + 5) + l(c, w);  // a neon edge so dark critters still read in the dark
+};
+for (const [id, C] of Object.entries(critters)) for (let k = 0; k < N; k++) {
+  const t = k / N * 2 * Math.PI, s = Math.sin(t), c2 = Math.cos(t);
+  const bob = -Math.abs(Math.sin(t)) * 7;               // bounce
+  const kit = C.kind === 'kitten';
+  const legs = [leg(-26, 16, 30 * s, 26, C.body, 9, C.line), leg(-14, 16, -30 * s, 26, C.body, 9, C.line),
+                leg(20, 16, -34 * s, 26, C.body, 9, C.line), leg(30, 16, 34 * s, 26, C.body, 9, C.line)].join('');
+  const tail = kit
+    ? [[C.line, 14], [C.body, 9]].map(([col, wd]) => `<path d="M-40,2 Q${-62 - 6 * c2},${-20 - 6 * s} ${-52 - 4 * s},${-46}" fill="none" stroke="${col}" stroke-width="${wd}" stroke-linecap="round"/>`).join('')
+    : [[C.line, 14], [C.body, 9]].map(([col, wd]) => `<path d="M-40,-2 Q${-56},${-16 - 8 * s} ${-52 + 4 * c2},${-30 - 6 * s}" fill="none" stroke="${col}" stroke-width="${wd}" stroke-linecap="round"/>`).join('');
+  const ears = kit
+    ? `<path d="M30,-38 L36,-60 L46,-42 Z M50,-40 L62,-58 L64,-36 Z" fill="${C.ear}" stroke="${C.line}" stroke-width="3" stroke-linejoin="round"/>`
+    : `<path d="M30,-40 Q22,-34 26,-12 Q36,-16 40,-34 Z" fill="${C.ear}" stroke="${C.line}" stroke-width="3"/>`;
+  const stripes = kit ? [-20, -6, 8].map(x => `<path d="M${x},-14 q4,8 0,16" fill="none" stroke="${C.stripes}" stroke-width="4" stroke-linecap="round"/>`).join('') : '';
+  const muzzle = kit
+    ? `<circle cx="64" cy="-24" r="3.5" fill="${C.nose}"/><path d="M64,-21 q-4,5 -8,2 M64,-21 q4,5 8,2" fill="none" stroke="${C.line}" stroke-width="2"/>
+       <path d="M58,-26 L82,-30 M58,-22 L82,-20" stroke="${C.line}" stroke-width="1.5" opacity=".8"/>`
+    : `<ellipse cx="66" cy="-20" rx="12" ry="9" fill="${C.belly}" stroke="${C.line}" stroke-width="2.5"/><circle cx="74" cy="-23" r="4.5" fill="${C.nose}"/>
+       <path d="M60,-12 q6,10 12,2" fill="#FF6FA8" stroke="${C.line}" stroke-width="1.5"/>`;
+  const div = document.createElement('div'); div.className = 'p'; div.id = `${id}-${k}`;
+  div.innerHTML = `<svg width="200" height="150" viewBox="-80 -80 180 135">
+   <defs><filter id="g${id}${k}" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+   <g transform="translate(0 ${bob.toFixed(1)})" filter="url(#g${id}${k})">
+    ${tail}${legs}
+    <ellipse cx="0" cy="2" rx="44" ry="22" fill="${C.body}" stroke="${C.line}" stroke-width="3"/>
+    <ellipse cx="2" cy="12" rx="28" ry="9" fill="${C.belly}" opacity=".9"/>
+    ${stripes}
+    <circle cx="48" cy="-26" r="${kit ? 20 : 22}" fill="${C.body}" stroke="${C.line}" stroke-width="3"/>
+    ${ears}${muzzle}
+    <circle cx="54" cy="-32" r="4.5" fill="#120008"/><circle cx="55.5" cy="-33.5" r="1.6" fill="#fff"/>
+   </g></svg>`;
+  document.getElementById('frames').appendChild(div);
+}
+</script></body></html>

@@ -89,13 +89,15 @@ Every feature is one key away. Click the GlamCam window and go.
 | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume, kill the lights, lurk with glowing neon-blue eyes and a neon mouth that talks | `f` | Lights: **Optional** · Mouth: **Running** |
 | 🪩 **[Neon props](#-neon-props)**: an Onboard sign, a disco ball, a floating neon keyboard and a "sucks to suck" window, hung on the wall *behind* you | `1`–`4` | Wall: **Decorated** |
 | 🐠 **[The Aquarium](#-the-aquarium)**: a big neon tank of swimming fish behind you. Pick who lives in it | `5`, then `t` | Fish: **Plenty** |
+| 🐶 **[Critters](#-critters)**: neon puppies and kittens sprint across the bottom of your screen at random | `c` / `j` | Cuteness: **Lethal** |
+| 💾 **[Scenes](#-scenes)**: save up to 5 complete looks and switch between them in one click | `u` / `i` + `1`–`5` | Outfit changes: **Instant** |
 | 🫥 **Hide me**: removes *you*, blacks out the room, and leaves just your props. In Cave Mode it's 👻 **ghost mode**: your frozen avatar stays, the camera never shows | `v` | You: **Gone** · Avatar: **Staying** |
 | 🔭 **Room mode**: zooms the camera out so there's more wall for props | `z` | Wall space: **More** |
 | 📺 **1080p** out of the box, even if your webcam is 720p | | Pixels: **All of them** |
 | 🌫️ **Background blur**: your laundry pile, gone | `b` | Laundry: **Gone** |
 | 💡 **Lighting match**: dim a wig to match your room | `l` | Default: **Off, because funnier** |
 | 🧪 **[Make your own wig](#-make-your-own-wig)**: any photo, any hair | `--make-wig` | Kevins: **Unlimited** |
-| ⌨️ **Floating keys window**: every shortcut, never on camera | `k` / `⌘K` | On camera: **Never** |
+| ⌨️ **Floating keys window**: every shortcut plus the scene loader, never on camera | `k` / `⌘K` | On camera: **Never** |
 | 📺 **Works with** Google Meet, Zoom, Teams and OBS, via the OBS Virtual Camera | | Compatibility: **Suspiciously good** |
 
 ## 🦇 Cave Mode
@@ -195,6 +197,37 @@ For the fish lovers. Press **`5`** to put a big neon tank on the wall behind you
 **🎉 Party Mode:** every fish, freshwater and salt, all in the reef tank. Biologically questionable. Spiritually correct.
 
 Press **`t`** to cycle in this order: Discus → Angelfish → Stingray → Pleco → Freshwater Community → Manta Ray → Clownfish → Lionfish → Saltwater Community → Party Mode. If the tank is off, `t` turns it on for you. Start with a particular crew using `--aquarium` and any of `discus`, `angelfish`, `stingray`, `pleco`, `freshwater`, `manta`, `clownfish`, `lionfish`, `saltwater`, `party`.
+
+## 🐶 Critters
+
+<p align="center"><img src="assets/critters.png" alt="Neon puppies and kittens running across the bottom of the screen: a golden puppy, a neon kitten, a neon puppy and an orange kitten"></p>
+
+Press **`c`** and every so often (somewhere between 6 and 20 seconds, nobody knows exactly, including the critters) a neon puppy or kitten **sprints across the bottom of your screen**, legs going, tail up. Press **`j`** to send one *right now*, for comedic timing.
+
+| Critter | Stats |
+|---|---|
+| **Golden puppy** | Good boy: **Yes** · Zoomies: **Active** |
+| **Neon puppy** | Glow: **Cyan** · Fetch: **Theoretical** |
+| **Orange kitten** | Stripes: **Tabby** · Attitude: **Chaotic** |
+| **Neon kitten** | Glow: **Pink** · Plans: **Unknown** |
+
+They run in front of everything, including you, and they keep running in Cave Mode, so your glowing avatar has company. Start with them on using `--critters`.
+
+## 💾 Scenes
+
+<p align="center"><img src="assets/panel.png" alt="The GlamCam Keys window: every shortcut in two columns, and a Scenes list with Load and Save buttons for slots 1 to 5" width="70%"></p>
+
+Got the *perfect* setup? Hoodie, Neon Jeff Ears, shades, the aquarium in party mode tucked into the corner, Cave Mode ready to go? Save it as a **scene**. You get **5 slots**.
+
+A scene remembers **everything**: the wig, mustache, hoodie and shades, which props are up, exactly where you dragged them and how big you made them, who's in the aquarium, critters, blur, Mike Mode and room mode.
+
+**The easy way:** press **`k`** to open the **GlamCam Keys** window, then click **Save** next to a slot, and later **Load** to put it all back on. The window shows what's in each slot (e.g. `top-hat + hoodie + shades, 2 props`) and confirms what you did. It's a separate window, so none of it ever shows on camera or in OBS.
+
+**The keyboard way:** **`i`** then **`1`**–**`5`** saves, **`u`** then **`1`**–**`5`** loads. If the keys window is open it shows the prompt; otherwise it's printed in the terminal. Never on camera.
+
+**Start with one:** `./run.sh --scene 3`.
+
+Scenes live in `scenes.json`, next to your saved wig fits and prop positions.
 
 ## 🚀 Getting started
 
@@ -339,7 +372,7 @@ In this route the preview window is mirrored like a selfie camera. Meet still ge
 
 ## 🎮 Controls
 
-<p align="center"><img src="assets/keys.png" alt="Controls: WASD move, - = size, N next wig, M mustache, X hide hair (Mike Mode), F Cave Mode, B blur, H wig on/off, L lighting, P save, K or Cmd+K keys window, 1-5 props, mouse drag/scroll/double-click props, T aquarium fish, O hoodie, G sunglasses, V hide me, Z room mode"></p>
+<p align="center"><img src="assets/keys.png" alt="Controls: WASD move, - = size, N next wig, M mustache, X hide hair (Mike Mode), F Cave Mode, B blur, H wig on/off, L lighting, P save, K or Cmd+K keys window, 1-5 props, mouse drag/scroll/double-click props, T aquarium fish, O hoodie, G sunglasses, V hide me, Z room mode, U/I scenes, C/J critters"></p>
 
 Click the **GlamCam** window first, then:
 
@@ -365,7 +398,11 @@ Click the **GlamCam** window first, then:
 | `b` | Background blur off / on |
 | `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |
 | `p` | Save this wig's fit, so it's remembered next time |
-| `k` (or `⌘K` / `Ctrl+K`) | Open a floating **GlamCam Keys** window with all of this. It's a separate window, so it never shows up on camera |
+| `k` (or `⌘K` / `Ctrl+K`) | Open the floating **GlamCam Keys** window: all of this, plus clickable scene **Load** / **Save** buttons. It's a separate window, so it never shows up on camera |
+| `u` then `1`–`5` | 💾 Load [scene](#-scenes) 1–5 |
+| `i` then `1`–`5` | 💾 Save the current look as scene 1–5 |
+| `c` | 🐶 [Critters](#-critters) on / off |
+| `j` | 🐶 Send a critter across right now |
 | `q` / `Esc` / close the window | Quit, return to your natural, disappointing hair |
 
 ## 🧪 Make your own wig
@@ -435,6 +472,8 @@ Pass these to `run.sh` / `run.bat`, or to the app's executable. Every one of the
 | `--no-blur` | Start with background blur off | `b` |
 | `--room 1.5` | Start in room mode (`1.25` or `1.5`) | `z` |
 | `--hide-me` | Start hidden: just the props, on black | `v` |
+| `--critters` | Start with puppies and kittens running around | `c` |
+| `--scene N` | Start with saved scene 1–5 | `u` |
 
 **🎛️ How it looks**
 

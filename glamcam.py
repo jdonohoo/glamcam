@@ -14,6 +14,8 @@ Keys (click the preview window first):
   o        hoodie mode on/off                    g      sunglasses (cycles)
   v        hide me: just the props, on black     z      room mode: zoom out for more wall
            (in cave mode: ghost mode, your frozen avatar + props, never the camera)
+  u  1-5   load a saved scene                    i  1-5  save this look as scene 1-5
+  c        puppies & kittens on/off              j      send one across right now
   1-5      neon props behind you (0 clears)      t      who's in the aquarium (cycles)
   drag     move a prop with the mouse            r      put the props back where they started
   scroll   resize the prop under the mouse       [ ]    shrink / grow the last prop you grabbed
@@ -57,6 +59,7 @@ WIG_DIRS = [BUNDLE / "wigs", USER_DIR / "my-wigs"]
 PROP_DIR = BUNDLE / "props"
 FIT_FILE = USER_DIR / "fit.json"
 PROP_SPOTS_FILE = USER_DIR / "prop-positions.json"  # where you dragged the props to
+SCENES_FILE = USER_DIR / "scenes.json"  # up to 5 saved looks (u + 1-5 to load, i + 1-5 to save)
 WINDOW = "GlamCam"  # never changes, so OBS Window Capture finds it again after a restart
 
 _MODEL_BASE = "https://storage.googleapis.com/mediapipe-models"
@@ -214,6 +217,66 @@ def load_wigs():
     return sorted(wigs, key=lambda wg: wg.order)  # stable: ties keep folder + name order
 
 
+class Critters:
+    """Neon puppies and kittens that run across the bottom of the screen now and then."""
+
+    KINDS = ["puppy-golden", "puppy-neon", "kitten-orange", "kitten-neon"]
+
+    def __init__(self):
+        self.frames = {}
+        for kind in self.KINDS:
+            imgs = [cv2.imread(str(PROP_DIR / "critters" / f"{kind}-{k}.png"), cv2.IMREAD_UNCHANGED) for k in range(6)]
+            if all(i is not None for i in imgs):
+                self.frames[kind] = imgs
+        self.on = False
+        self.runners = []  # [kind, start ms, direction, speed, size]
+        self.next_at = None
+        self.rng = np.random.default_rng()
+        self._sized = {}
+
+    def send(self, ts):
+        """Send one running across right now."""
+        if not self.frames:
+            return
+        kind = self.rng.choice(list(self.frames))
+        self.runners.append([kind, ts, int(self.rng.choice([-1, 1])), float(self.rng.uniform(0.22, 0.38)),
+                             float(self.rng.uniform(0.13, 0.19))])
+
+    def _sprite(self, kind, k, size, h, facing):
+        key = (kind, k, round(size, 3), h, facing)
+        if key not in self._sized:
+            img = self.frames[kind][k]
+            z = size * h / img.shape[0]
+            img = cv2.resize(img, None, fx=z, fy=z, interpolation=cv2.INTER_AREA)
+            self._sized[key] = img if facing > 0 else cv2.flip(img, 1)
+            if len(self._sized) > 400:
+                self._sized.clear()
+        return self._sized[key]
+
+    def draw(self, img, ts, blit):
+        if self.on:
+            if self.next_at is None:
+                self.next_at = ts + self.rng.uniform(2000, 6000)
+            if ts >= self.next_at:
+                self.send(ts)
+                self.next_at = ts + self.rng.uniform(6000, 20000)  # every 6-20 seconds, at random
+        h, w = img.shape[:2]
+        alive = []
+        for run in self.runners:
+            kind, start, direction, speed, size = run
+            t = (ts - start) / 1000
+            sprite = self._sprite(kind, int(t * 12) % 6, size, h, direction)
+            sw = sprite.shape[1]
+            dist = t * speed * w  # speed: screen widths per second
+            x = int(-sw + dist) if direction > 0 else int(w - dist)
+            if dist > w + sw:
+                continue  # made it across
+            alive.append(run)
+            blit(img, sprite, x, h - sprite.shape[0] - int(0.01 * h))
+        self.runners = alive
+        return img
+
+
 class Prop:
     """A neon object for the wall behind you. Placed in frame fractions, drawn behind your silhouette."""
 
@@ -320,6 +383,59 @@ def save_prop_spots(props):
     moved = {pr.id: [round(pr.x, 4), round(pr.top, 4), round(pr.height, 4), pr.front]
              for pr in props if (pr.x, pr.top, pr.height) != pr.default_spot or pr.front}
     PROP_SPOTS_FILE.write_text(json.dumps(moved, indent=1) + "\n")
+
+
+def scene_snapshot(r, room):
+    """Everything about your current look, as plain data."""
+    return {
+        "wig": r.wig.id, "mustache": r.stache.id if r.stache else None,
+        "hoodie": r.hoodie.id if r.hoodie else None, "glasses": r.glasses.id if r.glasses else None,
+        "props": [pr.id for pr in r.props], "aquarium": r.species,
+        "spots": {pr.id: [round(pr.x, 4), round(pr.top, 4), round(pr.height, 4), pr.front] for pr in r.all_props},
+        "blur": r.blur, "hide_hair": r.hide_hair, "relight": r.relight, "room": room, "critters": r.critters.on,
+    }
+
+
+def load_scenes():
+    try:
+        return json.loads(SCENES_FILE.read_text()) if SCENES_FILE.exists() else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def describe_scene(scene):
+    """Short label for a saved scene, e.g. 'top-hat + hoodie, 2 props'."""
+    bits = [scene.get("wig", "?")]
+    bits += [scene[k] for k in ("hoodie", "glasses", "mustache") if scene.get(k)]
+    n = len(scene.get("props", []))
+    return " + ".join(bits) + (f", {n} prop{'s' if n != 1 else ''}" if n else "")
+
+
+def save_scene(slot, r, room):
+    scenes = load_scenes()
+    scenes[str(slot)] = scene_snapshot(r, room)
+    SCENES_FILE.write_text(json.dumps(scenes, indent=1) + "\n")
+
+
+def apply_scene(scene, r, wigs, props_by_id):
+    """Put on a saved look. Returns (wig index, room zoom)."""
+    by_id = {wg.id: wg for wg in wigs}
+    r.set_wig(by_id.get(scene.get("wig"), r.wig))
+    r.stache = by_id.get(scene.get("mustache"))
+    r.hoodie = by_id.get(scene.get("hoodie"))
+    r.glasses = by_id.get(scene.get("glasses"))
+    for pid, spot in scene.get("spots", {}).items():
+        if pid in props_by_id:
+            props_by_id[pid].place(*spot[:3])
+            props_by_id[pid].front = bool(spot[3]) if len(spot) > 3 else False
+    r.props = sorted((props_by_id[p] for p in scene.get("props", []) if p in props_by_id), key=lambda p: p.key)
+    r.species = scene.get("aquarium", r.species)
+    r.blur = scene.get("blur", r.blur)
+    r.hide_hair = scene.get("hide_hair", r.hide_hair)
+    r.relight = scene.get("relight", r.relight)
+    r.critters.on = scene.get("critters", r.critters.on)
+    save_prop_spots(r.all_props)
+    return wigs.index(r.wig), float(scene.get("room", 1.0))
 
 
 class PropDragger:
@@ -471,6 +587,7 @@ class GlamRenderer:
         self.mic = MicLevel()  # how loud you are (microphone), started on first Cave Mode
         self.mouth = 0.0
         self.props = []  # neon objects on the wall behind you
+        self.critters = Critters()  # c: puppies and kittens running across the bottom
         self.all_props = []  # every prop, on the wall or not (for saving positions)
         self.prop_boxes = {}  # where each prop was last drawn, for click-and-drag
         self.species = "discus"  # who lives in the aquarium prop
@@ -741,6 +858,8 @@ class GlamRenderer:
                 out = self._draw_wig(out, layer, self.gain if layer is self.wig else None)
         if self.pinned and self.face is not None:
             out = self._cave_eyes(out, frame, ts)
+        if self.critters.on or self.critters.runners:  # they run in front of everything
+            out = self.critters.draw(out, ts, self._blit)
         return out
 
     def _cave_eyes(self, out, frame, ts):
@@ -884,38 +1003,99 @@ def draw_hud(img, text, y=34):
 
 
 HELP = [("w a s d", "move the wig"), ("- / =", "shrink / grow"), ("n", "next wig"), ("m", "mustache on any wig"),
-        ("o", "hoodie mode"), ("g", "sunglasses"), ("v", "hide me (+ f: ghost mode)"), ("z", "room mode (zoom out)"),
-        ("x", "hide my real hair"), ("f", "cave mode (glowing eyes)"), ("b", "background blur"),
-        ("1 - 5", "neon props (0 = none)"), ("drag", "move a prop"), ("scroll  [ ]", "resize a prop"), ("dbl-click", "prop in front of you"), ("cave: drag", "move your avatar"), ("r", "reset props"), ("t", "aquarium fish"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
-        ("k  cmd+K", "this window"),
-        ("q", "quit")]
+        ("o", "hoodie mode"), ("g", "sunglasses"), ("x", "hide my real hair"), ("f", "cave mode"),
+        ("v", "hide me (+ f: ghost)"), ("z", "room mode (zoom out)"), ("b", "background blur"),
+        ("1 - 5", "neon props (0 = none)"), ("mouse", "drag / scroll props"), ("dbl-click", "prop in front of you"),
+        ("r", "reset props"), ("t", "aquarium fish"), ("c / j", "critters / send one"),
+        ("u / i 1-5", "load / save scene"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
+        ("k  cmd+K", "this window"), ("q", "quit")]
 KEYS_WINDOW = "GlamCam Keys"
 
 
-def keys_card():
-    """The keyboard shortcuts as a little neon card, for its own floating window."""
-    img = np.full((96 + 38 * len(HELP), 470, 3), (40, 16, 27), np.uint8)
-    cv2.rectangle(img, (6, 6), (img.shape[1] - 7, img.shape[0] - 7), (210, 95, 255), 2, cv2.LINE_AA)
-    cv2.putText(img, "GlamCam keys", (26, 56), cv2.FONT_HERSHEY_DUPLEX, 1.1, (210, 95, 255), 2, cv2.LINE_AA)
-    for i, (key, what) in enumerate(HELP):
-        y = 104 + 38 * i
-        cv2.putText(img, key, (26, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 240, 0), 2, cv2.LINE_AA)
-        cv2.putText(img, what, (170, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (245, 230, 255), 1, cv2.LINE_AA)
-    return img
+class KeysPanel:
+    """The floating 'GlamCam Keys' window: every shortcut, plus a clickable scene loader.
+    It's its own window, so nothing in it ever shows up on camera or in OBS."""
 
+    W, ROW, TOP, COLS = 820, 30, 92, 2
 
-def toggle_keys_window(state):
-    """Open or close the floating shortcuts window. It's a separate window, so OBS never captures it."""
-    if state.get("open"):
-        cv2.destroyWindow(KEYS_WINDOW)
-        state.clear()
-        return
-    cv2.imshow(KEYS_WINDOW, keys_card())
-    try:
-        cv2.setWindowProperty(KEYS_WINDOW, cv2.WND_PROP_TOPMOST, 1)  # float above everything
-    except cv2.error:
-        pass
-    state["open"] = True
+    def __init__(self):
+        self.open = False
+        self.state = {}  # for window_closed()
+        self.status = "Click Load or Save, or press u / i then 1-5."
+        self.pending = None  # "load" / "save" while waiting for 1-5 from the keyboard
+        self.clicked = None  # ("load" | "save", slot) for the main loop to act on
+        self.buttons = []  # (x0, y0, x1, y1, action, slot)
+        self.dirty = True
+
+    def toggle(self):
+        if self.open:
+            cv2.destroyWindow(KEYS_WINDOW)
+            self.open, self.state = False, {}
+            return
+        cv2.namedWindow(KEYS_WINDOW)
+        cv2.setMouseCallback(KEYS_WINDOW, self.on_mouse)
+        self.open, self.dirty = True, True
+        self.show()
+        try:
+            cv2.setWindowProperty(KEYS_WINDOW, cv2.WND_PROP_TOPMOST, 1)  # float above everything
+        except cv2.error:
+            pass
+
+    def say(self, text):
+        print(text)
+        self.status, self.dirty = text, True
+
+    def on_mouse(self, event, x, y, flags, param):
+        if event != cv2.EVENT_LBUTTONDOWN:
+            return
+        for x0, y0, x1, y1, action, slot in self.buttons:
+            if x0 <= x <= x1 and y0 <= y <= y1:
+                self.clicked = (action, slot)
+
+    def show(self):
+        if not self.open:
+            return
+        if self.open and window_closed(self.state, KEYS_WINDOW):
+            self.open, self.state = False, {}  # closed with its own close button
+            return
+        if not self.dirty:
+            return
+        self.dirty = False
+        scenes = load_scenes()
+        pink, yellow, text, dim = (210, 95, 255), (0, 240, 255), (245, 230, 255), (150, 120, 170)
+        per_col = -(-len(HELP) // self.COLS)
+        keys_h = self.TOP + self.ROW * (per_col - 1)
+        img = np.full((keys_h + 324, self.W, 3), (40, 16, 27), np.uint8)
+        cv2.rectangle(img, (6, 6), (self.W - 7, img.shape[0] - 7), pink, 2, cv2.LINE_AA)
+        cv2.putText(img, "GlamCam keys", (24, 56), cv2.FONT_HERSHEY_DUPLEX, 1.05, pink, 2, cv2.LINE_AA)
+        for i, (key, what) in enumerate(HELP):
+            col, r = divmod(i, per_col)
+            x, y = 24 + col * (self.W // self.COLS), self.TOP + self.ROW * r
+            cv2.putText(img, key, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.56, (0, 240, 255)[::-1], 2, cv2.LINE_AA)
+            cv2.putText(img, what, (x + 132, y), cv2.FONT_HERSHEY_SIMPLEX, 0.56, text, 1, cv2.LINE_AA)
+        # scene loader
+        y = keys_h + 18
+        cv2.line(img, (20, y), (self.W - 20, y), pink, 1, cv2.LINE_AA)
+        cv2.putText(img, "Scenes", (24, y + 42), cv2.FONT_HERSHEY_DUPLEX, 0.9, pink, 2, cv2.LINE_AA)
+        self.buttons = []
+        for i in range(5):
+            slot = str(i + 1)
+            row = y + 66 + 40 * i
+            scene = scenes.get(slot)
+            label = describe_scene(scene) if scene else "(empty)"
+            cv2.putText(img, slot, (28, row + 22), cv2.FONT_HERSHEY_DUPLEX, 0.75, yellow[::-1], 2, cv2.LINE_AA)
+            cv2.putText(img, label[:50], (58, row + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.52, text if scene else dim, 1,
+                        cv2.LINE_AA)
+            for bx, action, color in ((self.W - 190, "load", (255, 240, 0)), (self.W - 100, "save", pink)):
+                live = action == "save" or scene
+                cv2.rectangle(img, (bx, row), (bx + 80, row + 30), color if live else dim, 2, cv2.LINE_AA)
+                cv2.putText(img, action.title(), (bx + 14, row + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.58,
+                            color if live else dim, 1 if not live else 2, cv2.LINE_AA)
+                self.buttons.append((bx, row, bx + 80, row + 30, action, slot))
+        msg = (f"{'Save' if self.pending == 'save' else 'Load'} scene: press 1-5" if self.pending else self.status)
+        cv2.putText(img, msg[:80], (24, img.shape[0] - 24), cv2.FONT_HERSHEY_SIMPLEX, 0.55,
+                    (0, 240, 255)[::-1] if self.pending else text, 1, cv2.LINE_AA)
+        cv2.imshow(KEYS_WINDOW, img)
 
 
 def window_closed(state, name=WINDOW):
@@ -977,7 +1157,23 @@ def run(args):
             ord("-"): (0, 0, 1 / 1.03), ord("="): (0, 0, 1.03), ord("+"): (0, 0, 1.03)}
     t0, last_ts = time.monotonic(), -1
     hud_until = 0 if args.obs_window else time.monotonic() + 4
-    win_state, keys_state = {}, {}
+    win_state = {}
+    panel = KeysPanel()
+    scene_prompt_until = 0
+
+    def do_scene(action, slot):
+        nonlocal current, room
+        if action == "save":
+            save_scene(slot, renderer, room)
+            panel.say(f"Saved scene {slot}")
+        else:
+            scene = load_scenes().get(slot)
+            if scene:
+                current, room = apply_scene(scene, renderer, wigs, {p.id: p for p in renderer.all_props})
+                panel.say(f"Loaded scene {slot}")
+            else:
+                panel.say(f"Scene {slot} is empty: click Save to fill it")
+        panel.pending, panel.dirty = None, True
     staches = [None] + [wg for wg in wigs if wg.kind == "mustache"]
     hoodies = [None] + [wg for wg in wigs if wg.kind == "hoodie"]
     shades = [None] + [wg for wg in wigs if wg.kind == "glasses"]
@@ -1003,6 +1199,13 @@ def run(args):
             renderer.props.append(pr)
     if args.mustache:
         renderer.stache = next((wg for wg in staches[1:] if wg.id == args.mustache), None)
+    renderer.critters.on = args.critters
+    if args.scene:
+        scene = load_scenes().get(str(args.scene))
+        if scene:
+            current, room = apply_scene(scene, renderer, wigs, {p.id: p for p in renderer.all_props})
+        else:
+            print(f"Scene {args.scene} is empty. Set things up, then press i and {args.scene} to save it.")
     try:
         while ok:
             ts = max(int((time.monotonic() - t0) * 1000), last_ts + 1)  # must strictly increase
@@ -1016,16 +1219,20 @@ def run(args):
             view = out.copy() if args.obs_window else cv2.flip(out, 1)
             if time.monotonic() < hud_until:
                 draw_hud(view, f"{renderer.wig.name}  (n = next wig, k = keys)")
+            if panel.pending and time.monotonic() > scene_prompt_until:
+                panel.pending, panel.dirty = None, True
+            if panel.clicked:  # a Load / Save button in the keys window
+                do_scene(*panel.clicked)
+                panel.clicked = None
+            panel.show()  # scene messages live in the keys window, never on camera
             dragger.size = (view.shape[1], view.shape[0])
             cv2.imshow(WINDOW, view)
 
             k = cv2.waitKey(1) & 0xFF
             if k in (ord("q"), 27) or window_closed(win_state):
                 break
-            if keys_state.get("open") and window_closed(keys_state, KEYS_WINDOW):
-                keys_state.clear()  # closed with its own close button
             if k in (ord("k"), ord("K"), 11, ord("?"), ord("/")):  # k, cmd+K (arrives as k), ctrl+K (11)
-                toggle_keys_window(keys_state)
+                panel.toggle()
             elif k in keys:
                 dx, dy, sc = keys[k]
                 renderer.nudge(dx if args.obs_window else -dx, dy, sc)  # mirrored preview flips left/right
@@ -1034,6 +1241,8 @@ def run(args):
                 renderer.set_wig(wigs[current])
                 if not args.obs_window:
                     hud_until = time.monotonic() + 2
+            elif panel.pending and ord("1") <= k <= ord("5"):
+                do_scene(panel.pending, chr(k))
             elif k == ord("0"):
                 renderer.props = []
             elif k == ord("r"):  # every prop back to its default spot and size
@@ -1060,6 +1269,18 @@ def run(args):
                 renderer.glasses = shades[(shades.index(renderer.glasses) + 1) % len(shades)]
             elif k == ord("b"):
                 renderer.blur = not renderer.blur
+            elif k in (ord("u"), ord("i"), ord("U")):  # scenes: u then 1-5 loads, i (or shift+u) then 1-5 saves
+                panel.pending, panel.dirty = ("load" if k == ord("u") else "save"), True
+                scene_prompt_until = time.monotonic() + 3
+                if not panel.open:
+                    print(f"{panel.pending.title()} scene: press 1-5")
+            elif k == ord("c"):
+                renderer.critters.on = not renderer.critters.on
+                renderer.critters.next_at = None
+            elif k in (ord("j"), ord("C")):  # send a critter across right now
+                if not renderer.critters.frames:
+                    print("No critter sprites found in props/critters/")
+                renderer.critters.send(ts)
             elif k == ord("v"):
                 renderer.hide_me = not renderer.hide_me
             elif k == ord("z"):  # room mode: 1x -> 1.25x -> 1.5x -> 1x
@@ -1101,12 +1322,16 @@ def self_test():
     r.hoodie = next((wg for wg in wigs if wg.kind == "hoodie"), None)
     r.glasses = next((wg for wg in wigs if wg.kind == "glasses"), None)
     r.species = "party"
+    r.critters.on = True
+    r.critters.send(1)
+    if len(r.critters.frames) != len(Critters.KINDS):
+        raise RuntimeError("critter sprites missing")
     r.props = load_props()
     frame = np.full((720, 1280, 3), 128, np.uint8)
     for k in range(3):
         r.process(frame, k * 33 + 1)
     r.close()
-    print(f"self-test ok: {len(wigs)} wigs, {len(r.props)} props, models from {MODEL_DIR}")
+    print(f"self-test ok: {len(wigs)} wigs, {len(r.props)} props, {len(r.critters.frames)} critters, models from {MODEL_DIR}")
 
 
 def main():
@@ -1125,6 +1350,8 @@ def main():
     ap.add_argument("--match-lighting", action="store_true", help="dim/brighten photo wigs to match your room")
     ap.add_argument("--hide-hair", action="store_true", help="start with your real hair painted out")
     ap.add_argument("--mustache", metavar="NAME", help="start with this mustache layered on (mustache, neon-mustache)")
+    ap.add_argument("--scene", type=int, choices=range(1, 6), help="start with saved scene 1-5")
+    ap.add_argument("--critters", action="store_true", help="start with puppies and kittens running around")
     ap.add_argument("--room", type=float, default=1.0, help="room mode: zoom out for more wall (1.25, 1.5)")
     ap.add_argument("--hide-me", action="store_true", help="start hidden: just the props, on black")
     ap.add_argument("--hoodie", action="store_true", help="start in hoodie mode")
