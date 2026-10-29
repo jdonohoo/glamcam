@@ -17,7 +17,24 @@
 
 ---
 
-## What is this?
+## ⚡ Quick start
+
+1. **Download** GlamCam for your computer from [**Releases**](https://github.com/jdonohoo/glamcam/releases/latest) (Mac with Apple Silicon, or Windows) and open it. Allow the camera (and the mic, for the [talking Cave Mode mouth](#-cave-mode)).
+2. **One time:** install [OBS](https://obsproject.com) and turn on its virtual camera ([how](#step-1--set-up-obs-one-time)).
+3. **In OBS:** add a Window Capture of the **GlamCam** window, click **Start Virtual Camera**, then pick **OBS Virtual Camera** in Meet ([step by step](#route-a-through-obs-recommended)).
+4. **Get glam:** press **`n`** for the next wig and **`k`** for every key. You'll figure out the rest. It's mostly hats.
+
+Rather run from source? `git clone https://github.com/jdonohoo/glamcam.git && cd glamcam && ./run.sh` ([full guide](#-getting-started)).
+
+## 🎬 The Show
+
+<table>
+<tr><td width="50%" valign="top"><a href="#-cave-mode"><img src="assets/cave.png" alt="🦇 Cave Mode"></a><br><b><a href="#-cave-mode">🦇 Cave Mode</a></b><br><sub>Freeze the costume, kill the lights. Glowing eyes, a neon mouth that talks, and ghost mode.</sub></td><td width="50%" valign="top"><a href="#-neon-props"><img src="assets/props.png" alt="🪩 Neon Props"></a><br><b><a href="#-neon-props">🪩 Neon Props</a></b><br><sub>Onboard sign, disco ball, floating keyboard, sucks to suck. Drag them anywhere.</sub></td></tr>
+<tr><td width="50%" valign="top"><a href="#-the-aquarium"><img src="assets/aquarium.png" alt="🐠 The Aquarium"></a><br><b><a href="#-the-aquarium">🐠 The Aquarium</a></b><br><sub>Discus, angelfish, stingrays, mantas, clownfish, lionfish. Freshwater, reef, or Party Mode.</sub></td><td width="50%" valign="top"><a href="#-hoodie--shades"><img src="assets/wardrobe.png" alt="🥷 Hoodie & Shades"></a><br><b><a href="#-hoodie--shades">🥷 Hoodie & Shades</a></b><br><sub>The Onboard Hoodie and sunglasses, layered over any wig.</sub></td></tr>
+<tr><td width="50%" valign="top"><a href="#-critters"><img src="assets/critters.png" alt="🐶 Critters"></a><br><b><a href="#-critters">🐶 Critters</a></b><br><sub>Neon puppies and kittens sprint across your screen. Cuteness: lethal.</sub></td><td width="50%" valign="top"><a href="#-scenes"><img src="assets/panel.png" alt="💾 Scenes"></a><br><b><a href="#-scenes">💾 Scenes</a></b><br><sub>Save 5 complete looks and switch with one click, off camera.</sub></td></tr>
+</table>
+
+## 😎 What is this?
 
 You know that one coworker with *the hair*? Flowing. Luminous. Shampoo-commercial-in-slow-motion hair?
 
@@ -27,6 +44,8 @@ It finds your face 30 times a second, glues a wig to your forehead (it follows y
 
 Ships with **Glaaron**, the hair that started it all, a **neon magician's top hat** (with rabbit), **two sweet, sweet mustaches**, **The Ultimate Glaaron** (hair + hat + mustache), **Jeff Mode** (Jeff Ears, classic and neon), **sunglasses**, a **hoodie** with a neon Onboard logo, and four neon wigs nobody asked for. Or [make your own](#-make-your-own-wig) from any photo.
 
+Then it got out of hand: [Cave Mode](#-cave-mode) with glowing eyes and a mouth that talks, [neon props](#-neon-props) you can drag around the wall, a [full aquarium](#-the-aquarium), [puppies and kittens](#-critters) running across your screen, and [scenes](#-scenes) to save it all. So many juicy features.
+
 | | |
 |---|---|
 | **Glossiness** | Very |
@@ -34,16 +53,69 @@ Ships with **Glaaron**, the hair that started it all, a **neon magician's top ha
 | **HR approved** | Pending |
 | **Real hair harmed** | 0 |
 
-## How it works
+## ✨ Features
 
-<p align="center"><img src="assets/how.png" alt="Webcam → 478 face dots → wig glued on → background blurred → OBS Virtual Camera → Meet/Zoom/Teams"></p>
+Every feature is one key away. Click the GlamCam window and go.
 
-1. **MediaPipe** puts 478 dots on your face. GlamCam only listens to the forehead, brows, eyes and temples, so the wig doesn't flap when you talk.
-2. The wig gets moved, scaled and rotated to match those dots, every frame.
-3. A second model figures out which pixels are *you* and blurs everything else.
-4. The result goes out through the **OBS Virtual Camera**, which every video app already knows how to use, either straight from GlamCam or via an OBS scene.
+| Feature | Key | Stats |
+|---|---|---|
+| 🎩 **Face-tracking costumes**: wigs, hats, mustaches and ears that follow you as you lean, tilt and nod | `n` | Accuracy: **Uncanny** · Looks: **15 and counting** |
+| 🥸 **Mustache mix & match**: put a mustache on *any* wig | `m` | Combinations: **Irresponsible** |
+| 🥷 **[Hoodie mode](#-hoodie--shades)**: a black hoodie with a neon Onboard logo, under *any* wig | `o` | Hair: **Hooded** |
+| 😎 **[Sunglasses](#-hoodie--shades)**: shades or neon shades, over *any* wig | `g` | Cool: **Extremely** |
+| 🫥 **Hair hider (Mike Mode)**: paints your real hair out so it can't sneak out from under the wig | `x` | Hair: **Hidden** · Shame: **Also hidden** |
+| 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume, kill the lights, lurk with glowing neon-blue eyes and a neon mouth that talks | `f` | Lights: **Optional** · Mouth: **Running** |
+| 🪩 **[Neon props](#-neon-props)**: an Onboard sign, a disco ball, a floating neon keyboard and a "sucks to suck" window, hung on the wall *behind* you | `1`–`4` | Wall: **Decorated** |
+| 🐠 **[The Aquarium](#-the-aquarium)**: a big neon tank of swimming fish behind you. Pick who lives in it | `5`, then `t` | Fish: **Plenty** |
+| 🐶 **[Critters](#-critters)**: neon puppies and kittens sprint across the bottom of your screen at random | `c` / `j` | Cuteness: **Lethal** |
+| 💾 **[Scenes](#-scenes)**: save up to 5 complete looks and switch between them in one click | `u` / `i` + `1`–`5` | Outfit changes: **Instant** |
+| 🫥 **Hide me**: removes *you*, blacks out the room, and leaves just your props. In Cave Mode it's 👻 **ghost mode**: your frozen avatar stays, the camera never shows | `v` | You: **Gone** · Avatar: **Staying** |
+| 🔭 **Room mode**: zooms the camera out so there's more wall for props | `z` | Wall space: **More** |
+| 📺 **1080p** out of the box, even if your webcam is 720p | | Pixels: **All of them** |
+| 🌫️ **Background blur**: your laundry pile, gone | `b` | Laundry: **Gone** |
+| 💡 **Lighting match**: dim a wig to match your room | `l` | Default: **Off, because funnier** |
+| 🧪 **[Make your own wig](#-make-your-own-wig)**: any photo, any hair | `--make-wig` | Kevins: **Unlimited** |
+| ⌨️ **Floating keys window**: every shortcut plus the scene loader, never on camera | `k` / `⌘K` | On camera: **Never** |
+| 📺 **Works with** Google Meet, Zoom, Teams and OBS, via the OBS Virtual Camera | | Compatibility: **Suspiciously good** |
 
-## The Wig Closet
+## 🎮 Controls
+
+<p align="center"><img src="assets/keys.png" alt="Controls: WASD move, - = size, N next wig, M mustache, X hide hair (Mike Mode), F Cave Mode, B blur, H wig on/off, L lighting, P save, K or Cmd+K keys window, 1-5 props, mouse drag/scroll/double-click props, T aquarium fish, O hoodie, G sunglasses, V hide me, Z room mode, U/I scenes, C/J critters"></p>
+
+Click the **GlamCam** window first, then:
+
+| Key | Does |
+|---|---|
+| `w` `a` `s` `d` | Nudge the wig up / left / down / right |
+| `-` `=` | Shrink / grow the wig |
+| `n` | Next wig |
+| `m` | Mustache on **any** wig: cycles none → The Mustache → Neon Mustache. Disco Inferno with a neon handlebar? Yes. |
+| `o` | 🥷 [Hoodie mode](#-hoodie--shades): hoodie on / off, under any wig |
+| `g` | 😎 [Sunglasses](#-hoodie--shades): cycles none → Shades → Neon Shades, over any wig |
+| `1` `2` `3` `4` | 🪩 [Neon props](#-neon-props) on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck. `0` clears them |
+| `5` | 🐠 [The Aquarium](#-the-aquarium) on / off |
+| `v` | 🫥 Hide me: just the props, on black. In Cave Mode: 👻 ghost mode (props + your frozen avatar, never the camera) |
+| `z` | 🔭 Room mode: zoom out for more wall (1× → 1.25× → 1.5×) |
+| 🖱️ drag / scroll / double-click | Move, resize, or bring a prop in front of you ([details](#-neon-props)) |
+| `[` `]` | Shrink / grow the last prop you grabbed |
+| `r` | Reset every prop to its default spot and size |
+| `t` | 🐠 Who's in the aquarium: each fish on its own, Freshwater Community, Saltwater Community, or Party Mode (everyone) |
+| `x` | 🫥 Hide your real hair (**Mike Mode**): paints it out so it can't peek out from under the wig |
+| `f` | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume in place, turn your lights off, lurk with glowing blue eyes and a talking neon mouth. Drag the costume to move it. `f` again to resume tracking |
+| `h` | Wig off / on (for when your skip-level joins) |
+| `b` | Background blur off / on |
+| `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |
+| `p` | Save this wig's fit, so it's remembered next time |
+| `k` (or `⌘K` / `Ctrl+K`) | Open the floating **GlamCam Keys** window: all of this, plus clickable scene **Load** / **Save** buttons. It's a separate window, so it never shows up on camera |
+| `u` then `1`–`5` | 💾 Load [scene](#-scenes) 1–5 |
+| `i` then `1`–`5` | 💾 Save the current look as scene 1–5 |
+| `c` | 🐶 [Critters](#-critters) on / off |
+| `j` | 🐶 Send a critter across right now |
+| `q` / `Esc` / close the window | Quit, return to your natural, disappointing hair |
+
+---
+
+## 👗 The Wig Closet
 
 <p align="center"><img src="assets/closet.png" alt="Fifteen looks on a cartoon mascot: Glaaron, Top Hat, Glaaron Magnifique, Ultimate Glaaron, The Mustache, Neon Mustache, Jeff Ears, Neon Jeff Ears, Shades, Neon Shades, Hoodie, Disco Inferno, Synthwave Mullet, Cyber Mohawk, The Executive"></p>
 
@@ -72,33 +144,6 @@ Press **`n`** while it's running to cycle through them, in this order: from Glaa
 > 🦇 **[Cave Mode](#-cave-mode):** get your costume lined up, press `f` to freeze it, then kill the lights. Your Jeff Ears (or Glaaron) keep floating in the dark.
 
 > 🎩 **Tall hat tip:** the top hat (and the mohawk) go well above your head. If the top gets cut off, sit a little further back or press `-` to shrink it, then `p` to save.
-
----
-
-## ✨ Features
-
-Every feature is one key away. Click the GlamCam window and go.
-
-| Feature | Key | Stats |
-|---|---|---|
-| 🎩 **Face-tracking costumes**: wigs, hats, mustaches and ears that follow you as you lean, tilt and nod | `n` | Accuracy: **Uncanny** · Looks: **15 and counting** |
-| 🥸 **Mustache mix & match**: put a mustache on *any* wig | `m` | Combinations: **Irresponsible** |
-| 🥷 **[Hoodie mode](#-hoodie--shades)**: a black hoodie with a neon Onboard logo, under *any* wig | `o` | Hair: **Hooded** |
-| 😎 **[Sunglasses](#-hoodie--shades)**: shades or neon shades, over *any* wig | `g` | Cool: **Extremely** |
-| 🫥 **Hair hider (Mike Mode)**: paints your real hair out so it can't sneak out from under the wig | `x` | Hair: **Hidden** · Shame: **Also hidden** |
-| 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume, kill the lights, lurk with glowing neon-blue eyes and a neon mouth that talks | `f` | Lights: **Optional** · Mouth: **Running** |
-| 🪩 **[Neon props](#-neon-props)**: an Onboard sign, a disco ball, a floating neon keyboard and a "sucks to suck" window, hung on the wall *behind* you | `1`–`4` | Wall: **Decorated** |
-| 🐠 **[The Aquarium](#-the-aquarium)**: a big neon tank of swimming fish behind you. Pick who lives in it | `5`, then `t` | Fish: **Plenty** |
-| 🐶 **[Critters](#-critters)**: neon puppies and kittens sprint across the bottom of your screen at random | `c` / `j` | Cuteness: **Lethal** |
-| 💾 **[Scenes](#-scenes)**: save up to 5 complete looks and switch between them in one click | `u` / `i` + `1`–`5` | Outfit changes: **Instant** |
-| 🫥 **Hide me**: removes *you*, blacks out the room, and leaves just your props. In Cave Mode it's 👻 **ghost mode**: your frozen avatar stays, the camera never shows | `v` | You: **Gone** · Avatar: **Staying** |
-| 🔭 **Room mode**: zooms the camera out so there's more wall for props | `z` | Wall space: **More** |
-| 📺 **1080p** out of the box, even if your webcam is 720p | | Pixels: **All of them** |
-| 🌫️ **Background blur**: your laundry pile, gone | `b` | Laundry: **Gone** |
-| 💡 **Lighting match**: dim a wig to match your room | `l` | Default: **Off, because funnier** |
-| 🧪 **[Make your own wig](#-make-your-own-wig)**: any photo, any hair | `--make-wig` | Kevins: **Unlimited** |
-| ⌨️ **Floating keys window**: every shortcut plus the scene loader, never on camera | `k` / `⌘K` | On camera: **Never** |
-| 📺 **Works with** Google Meet, Zoom, Teams and OBS, via the OBS Virtual Camera | | Compatibility: **Suspiciously good** |
 
 ## 🦇 Cave Mode
 
@@ -152,23 +197,6 @@ Your arrangement saves the moment you let go, and it's there next time you start
 
 Heads-up: in the mirrored preview window the Onboard sign reads backwards (and the aquarium shows on the left), just like a real room behind you in a selfie. Everyone on the call sees it the right way round. Dragging works the same either way: grab what you see.
 
-## 🥷 Hoodie & Shades
-
-<p align="center"><img src="assets/wardrobe.png" alt="Hoodie mode, Shades, Neon Shades, and The Full Send: hoodie plus top hat plus mustache plus neon shades"></p>
-
-> 🥷 **The Onboard Hoodie: Don't leave home without it.**
-
-Two layers that go with **everything**. They stack with whatever wig you're wearing (and with `m` for a mustache).
-
-| Key | Layer | Stats |
-|---|---|---|
-| `o` | **Hoodie mode**: the **Onboard Hoodie**, a black athletic hoodie with a neon **Onboard** logo on the chest. Don't leave home without it. The deep hood goes *under* your wig and covers your real hair *and* ears; the body runs off the bottom of the frame like a real hoodie | Hair: **Hooded** · Ears: **Also hooded** |
-| `g` | **Sunglasses**: cycles none → Shades → Neon Shades. They go *on top* of everything | Cool: **Extremely** · Indoors: **Yes, obviously** |
-
-Stacking order, bottom to top: **hoodie** → **wig** → **mustache** → **shades**. Hoodie + Top Hat + Mustache + Neon Shades is officially known as **The Full Send**.
-
-Hoodie mode and Mike Mode (`x`) team up nicely: the hood covers the top of your head, and Mike Mode cleans up anything sticking out of it.
-
 ## 🐠 The Aquarium
 
 <p align="center"><img src="assets/aquarium.png" alt="The Aquarium. Freshwater: Discus, Angelfish, Stingray, Pleco, Freshwater Community. Saltwater: Manta Ray, Clownfish, Lionfish, Saltwater Community, and Party Mode with every fish"></p>
@@ -197,6 +225,23 @@ For the fish lovers. Press **`5`** to put a big neon tank on the wall behind you
 **🎉 Party Mode:** every fish, freshwater and salt, all in the reef tank. Biologically questionable. Spiritually correct.
 
 Press **`t`** to cycle in this order: Discus → Angelfish → Stingray → Pleco → Freshwater Community → Manta Ray → Clownfish → Lionfish → Saltwater Community → Party Mode. If the tank is off, `t` turns it on for you. Start with a particular crew using `--aquarium` and any of `discus`, `angelfish`, `stingray`, `pleco`, `freshwater`, `manta`, `clownfish`, `lionfish`, `saltwater`, `party`.
+
+## 🥷 Hoodie & Shades
+
+<p align="center"><img src="assets/wardrobe.png" alt="Hoodie mode, Shades, Neon Shades, and The Full Send: hoodie plus top hat plus mustache plus neon shades"></p>
+
+> 🥷 **The Onboard Hoodie: Don't leave home without it.**
+
+Two layers that go with **everything**. They stack with whatever wig you're wearing (and with `m` for a mustache).
+
+| Key | Layer | Stats |
+|---|---|---|
+| `o` | **Hoodie mode**: the **Onboard Hoodie**, a black athletic hoodie with a neon **Onboard** logo on the chest. Don't leave home without it. The deep hood goes *under* your wig and covers your real hair *and* ears; the body runs off the bottom of the frame like a real hoodie | Hair: **Hooded** · Ears: **Also hooded** |
+| `g` | **Sunglasses**: cycles none → Shades → Neon Shades. They go *on top* of everything | Cool: **Extremely** · Indoors: **Yes, obviously** |
+
+Stacking order, bottom to top: **hoodie** → **wig** → **mustache** → **shades**. Hoodie + Top Hat + Mustache + Neon Shades is officially known as **The Full Send**.
+
+Hoodie mode and Mike Mode (`x`) team up nicely: the hood covers the top of your head, and Mike Mode cleans up anything sticking out of it.
 
 ## 🐶 Critters
 
@@ -228,6 +273,52 @@ A scene remembers **everything**: the wig, mustache, hoodie and shades, which pr
 **Start with one:** `./run.sh --scene 3`.
 
 Scenes live in `scenes.json`, next to your saved wig fits and prop positions.
+
+## 🧪 Make your own wig
+
+<p align="center"><img src="assets/diy.png" alt="Step 1: a photo of Kevin. Step 2: AI cuts out only the hair. Step 3: you, wearing Kevin's hair."></p>
+
+Any photo with a face and some hair works. GlamCam finds the face, cuts out *only* the hair, and saves it as a wig. Then press `n` until you reach it, or start with `--wig kevin`.
+
+From source, macOS:
+
+```bash
+./run.sh --make-wig ~/Pictures/kevin.jpg --name Kevin
+```
+
+From source, Windows:
+
+```powershell
+.\run.bat --make-wig C:\Users\you\Pictures\kevin.jpg --name Kevin
+```
+
+With the app, macOS:
+
+```bash
+/Applications/GlamCam.app/Contents/MacOS/GlamCam --make-wig ~/Pictures/kevin.jpg --name Kevin
+```
+
+With the app, Windows (from the folder with GlamCam.exe):
+
+```powershell
+.\GlamCam.exe --make-wig C:\Users\you\Pictures\kevin.jpg --name Kevin
+```
+
+**For the best wig:**
+
+- A real photo beats a screenshot: phone camera, sent as the original file.
+- Face the camera straight on, head level, hair clearly visible and not over the face.
+- A plain background that contrasts with the hair, soft light from the front.
+- Frame from mid-chest up so all the hair fits, with some room above the head.
+- If it sits a bit off, nudge it with `w a s d` / `- =` and press `p` to save.
+
+Wigs you make go in **`my-wigs/`** when running from source (it's **git-ignored**, so you can't accidentally publish Kevin), or the app's data folder (see [Step 2a](#step-2a--the-glamcam-app-easiest)). Only the hair is kept: the face and background are blanked out of the file entirely, not just made transparent.
+
+> 💅 **Wig etiquette:** Hair is personal. Ask before you wear someone's. Glaaron is here with Aaron's full, enthusiastic blessing. Aaron is reportedly very excited.
+
+Want to add a wig for everyone? Put `name.png` + `name.json` in `wigs/` and open a PR. The neon wigs are drawn in code in [`tools/draw_wigs.py`](tools/draw_wigs.py), if you want to make more.
+
+---
 
 ## 🚀 Getting started
 
@@ -368,88 +459,16 @@ In this route the preview window is mirrored like a selfie camera. Meet still ge
 
 **Test without Meet (macOS):** **QuickTime Player → File → New Movie Recording**, click the **⌄** next to the record button, and choose **OBS Virtual Camera**.
 
----
+## ⚙️ How it works
 
-## 🎮 Controls
+<p align="center"><img src="assets/how.png" alt="Webcam → 478 face dots → wig glued on → background blurred → OBS Virtual Camera → Meet/Zoom/Teams"></p>
 
-<p align="center"><img src="assets/keys.png" alt="Controls: WASD move, - = size, N next wig, M mustache, X hide hair (Mike Mode), F Cave Mode, B blur, H wig on/off, L lighting, P save, K or Cmd+K keys window, 1-5 props, mouse drag/scroll/double-click props, T aquarium fish, O hoodie, G sunglasses, V hide me, Z room mode, U/I scenes, C/J critters"></p>
+1. **MediaPipe** puts 478 dots on your face. GlamCam only listens to the forehead, brows, eyes and temples, so the wig doesn't flap when you talk.
+2. The wig gets moved, scaled and rotated to match those dots, every frame.
+3. A second model figures out which pixels are *you* and blurs everything else.
+4. The result goes out through the **OBS Virtual Camera**, which every video app already knows how to use, either straight from GlamCam or via an OBS scene.
 
-Click the **GlamCam** window first, then:
-
-| Key | Does |
-|---|---|
-| `w` `a` `s` `d` | Nudge the wig up / left / down / right |
-| `-` `=` | Shrink / grow the wig |
-| `n` | Next wig |
-| `m` | Mustache on **any** wig: cycles none → The Mustache → Neon Mustache. Disco Inferno with a neon handlebar? Yes. |
-| `o` | 🥷 [Hoodie mode](#-hoodie--shades): hoodie on / off, under any wig |
-| `g` | 😎 [Sunglasses](#-hoodie--shades): cycles none → Shades → Neon Shades, over any wig |
-| `1` `2` `3` `4` | 🪩 [Neon props](#-neon-props) on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck. `0` clears them |
-| `5` | 🐠 [The Aquarium](#-the-aquarium) on / off |
-| `v` | 🫥 Hide me: just the props, on black. In Cave Mode: 👻 ghost mode (props + your frozen avatar, never the camera) |
-| `z` | 🔭 Room mode: zoom out for more wall (1× → 1.25× → 1.5×) |
-| 🖱️ drag / scroll / double-click | Move, resize, or bring a prop in front of you ([details](#-neon-props)) |
-| `[` `]` | Shrink / grow the last prop you grabbed |
-| `r` | Reset every prop to its default spot and size |
-| `t` | 🐠 Who's in the aquarium: each fish on its own, Freshwater Community, Saltwater Community, or Party Mode (everyone) |
-| `x` | 🫥 Hide your real hair (**Mike Mode**): paints it out so it can't peek out from under the wig |
-| `f` | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume in place, turn your lights off, lurk with glowing blue eyes and a talking neon mouth. Drag the costume to move it. `f` again to resume tracking |
-| `h` | Wig off / on (for when your skip-level joins) |
-| `b` | Background blur off / on |
-| `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |
-| `p` | Save this wig's fit, so it's remembered next time |
-| `k` (or `⌘K` / `Ctrl+K`) | Open the floating **GlamCam Keys** window: all of this, plus clickable scene **Load** / **Save** buttons. It's a separate window, so it never shows up on camera |
-| `u` then `1`–`5` | 💾 Load [scene](#-scenes) 1–5 |
-| `i` then `1`–`5` | 💾 Save the current look as scene 1–5 |
-| `c` | 🐶 [Critters](#-critters) on / off |
-| `j` | 🐶 Send a critter across right now |
-| `q` / `Esc` / close the window | Quit, return to your natural, disappointing hair |
-
-## 🧪 Make your own wig
-
-<p align="center"><img src="assets/diy.png" alt="Step 1: a photo of Kevin. Step 2: AI cuts out only the hair. Step 3: you, wearing Kevin's hair."></p>
-
-Any photo with a face and some hair works. GlamCam finds the face, cuts out *only* the hair, and saves it as a wig. Then press `n` until you reach it, or start with `--wig kevin`.
-
-From source, macOS:
-
-```bash
-./run.sh --make-wig ~/Pictures/kevin.jpg --name Kevin
-```
-
-From source, Windows:
-
-```powershell
-.\run.bat --make-wig C:\Users\you\Pictures\kevin.jpg --name Kevin
-```
-
-With the app, macOS:
-
-```bash
-/Applications/GlamCam.app/Contents/MacOS/GlamCam --make-wig ~/Pictures/kevin.jpg --name Kevin
-```
-
-With the app, Windows (from the folder with GlamCam.exe):
-
-```powershell
-.\GlamCam.exe --make-wig C:\Users\you\Pictures\kevin.jpg --name Kevin
-```
-
-**For the best wig:**
-
-- A real photo beats a screenshot: phone camera, sent as the original file.
-- Face the camera straight on, head level, hair clearly visible and not over the face.
-- A plain background that contrasts with the hair, soft light from the front.
-- Frame from mid-chest up so all the hair fits, with some room above the head.
-- If it sits a bit off, nudge it with `w a s d` / `- =` and press `p` to save.
-
-Wigs you make go in **`my-wigs/`** when running from source (it's **git-ignored**, so you can't accidentally publish Kevin), or the app's data folder (see [Step 2a](#step-2a--the-glamcam-app-easiest)). Only the hair is kept: the face and background are blanked out of the file entirely, not just made transparent.
-
-> 💅 **Wig etiquette:** Hair is personal. Ask before you wear someone's. Glaaron is here with Aaron's full, enthusiastic blessing. Aaron is reportedly very excited.
-
-Want to add a wig for everyone? Put `name.png` + `name.json` in `wigs/` and open a PR. The neon wigs are drawn in code in [`tools/draw_wigs.py`](tools/draw_wigs.py), if you want to make more.
-
-## ⚙️ All the options
+## 🎛️ All the options
 
 Pass these to `run.sh` / `run.bat`, or to the app's executable. Every one of them is also a key you can press while it runs.
 
