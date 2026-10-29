@@ -99,7 +99,7 @@ GlamCam's video reaches Meet through the **OBS Virtual Camera**, so OBS needs to
    systemextensionsctl list | grep -i obs
    ```
 
-> 🪟 **A word on Windows QA:** we do **zero** hands-on testing on Windows. We rapid-test on Mac and Linux and full send the Windows build, the way software is meant to be shipped. To be fair, a GitHub robot does check that every Windows release builds, boots, and can find all its wigs. No human has ever pointed a webcam at it. If it breaks, [open an issue](https://github.com/jdonohoo/glamcam/issues) and we'll pretend to be surprised.
+> 🪟 **Windows users:** GlamCam ships to you under our [**full send** QA policy](#-qa-policy). A robot makes sure it builds and boots; no human has ever tested it with a webcam. If it doesn't work: sucks to suck. PRs welcome.
 
 **Windows**
 
@@ -297,6 +297,22 @@ Pass these to `run.sh` / `run.bat`, or to the app's executable.
 | `--mustache NAME` | Start with a mustache layered on: `mustache` or `neon-mustache` (`m`) |
 | `--download-models` | Re-download the AI models (from source) |
 
+## 🔬 QA Policy
+
+<p align="center"><img src="assets/qa.png" alt="QA report: macOS tested, Linux tested, Windows full send. Support policy: sucks to suck."></p>
+
+We test GlamCam the way software is meant to be tested: rapidly, on the machines we have, with total confidence.
+
+| | |
+|---|---|
+| **macOS** | Rapid-tested. A real human, a real webcam, a real top hat. |
+| **Linux** | Rapid-tested, headlessly, on a display that doesn't exist. |
+| **Windows** | **Full send.** Zero human testing. A GitHub robot checks that every release builds, boots and finds all its wigs, and then we ship it. |
+| **Windows support policy** | Sucks to suck™ |
+| **Windows pull requests** | Welcome, and you will be celebrated as a hero |
+
+Doesn't work on your Windows machine? Sucks to suck. Works on your Windows machine? You're welcome.
+
 ## 🩹 Troubleshooting
 
 **OBS: "Could not find the virtual camera system process"**
@@ -328,6 +344,9 @@ macOS: `brew install python@3.12`, then `./setup.sh` again. Windows: `winget ins
 
 **The wig jitters**
 `--smooth 0.7`. Good lighting on your face helps a lot too. Trackers love a ring light.
+
+**It doesn't work on my Windows machine**
+Sucks to suck. See the [QA policy](#-qa-policy). (If you figure out why, a PR makes you a legend.)
 
 **My real hair peeks out around the wig**
 Press `x` (or start with `--hide-hair`). GlamCam finds your actual hair and paints it out with the colors around it. It leaves your face alone, so hair right next to your face may still show a little. Pressing `=` once or twice to make the wig a bit bigger covers the rest.
