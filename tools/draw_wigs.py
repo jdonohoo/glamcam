@@ -425,40 +425,55 @@ def neon_jeff_ears():
 
 
 def hoodie():
-    """A sleek black athletic hoodie with a neon Onboard logo. The hood hides your hair."""
-    img = canvas()
-    d = ImageDraw.Draw(img)
-    black, edge, seam = (16, 16, 20, 255), (44, 44, 52, 255), (34, 34, 40, 255)
-    # body and shoulders, then the hood around the head
-    d.polygon([P(-235, 230), P(235, 230), P(470, 600), P(-470, 600)], fill=black)
-    d.ellipse([*P(-470, 430), *P(470, 760)], fill=black)
-    d.ellipse([*P(-305, -360), *P(305, 330)], fill=black)
-    # soft fabric shading: a lighter sheen down one side of the hood
-    sheen = Image.new("L", img.size, 0)
-    ImageDraw.Draw(sheen).ellipse([*P(-290, -330), *P(-120, 250)], fill=46)
-    sheen = sheen.filter(ImageFilter.GaussianBlur(40 * SS))
-    img.paste(Image.new("RGBA", img.size, (80, 80, 92, 255)), (0, 0), ImageChops.multiply(sheen, img.getchannel("A")))
-    d = ImageDraw.Draw(img)
-    d.line([P(0, -358), P(0, -170)], fill=seam, width=int(4 * SS))  # center seam over the top of the hood
-    # the face opening with a rolled edge
-    d.ellipse([*P(-202, -172), *P(202, 318)], fill=edge)
-    hole = Image.new("L", img.size, 0)
-    ImageDraw.Draw(hole).ellipse([*P(-186, -152), *P(186, 300)], fill=255)
-    hole = hole.filter(ImageFilter.GaussianBlur(2 * SS))
-    img.putalpha(ImageChops.multiply(img.getchannel("A"), ImageChops.invert(hole)))
-    d = ImageDraw.Draw(img)
-    # drawstrings with metal tips
-    for side in (-1, 1):
-        strand(d, [(side * 58, 300), (side * 66, 360), (side * 60, 420), (side * 70, 470)], 7,
-               [(200, 200, 210, 255), (230, 230, 238, 255)])
-        d.rounded_rectangle([*P(side * 70 - 7, 468), *P(side * 70 + 7, 500)], radius=3 * SS, fill=(170, 170, 185, 255))
-    # neon Onboard logo on the chest
-    logo = Image.open(REPO / "tools" / "onboard-logo.png").convert("RGBA")
-    lw = int(300 * SS)
-    logo = logo.resize((lw, int(logo.height * lw / logo.width)), Image.LANCZOS)
-    cx, cy = P(0, 520)
-    img.alpha_composite(logo, (int(cx - logo.width / 2), int(cy - logo.height / 2)))
-    finish(img, "hoodie", "Hoodie", 9, glow=0, kind="hoodie")
+    """A sleek black athletic hoodie with a neon Onboard logo. The hood covers your hair and ears,
+    and the body runs off the bottom of the frame like a real hoodie."""
+    global W, H, OX
+    saved = W, H, OX
+    W, H, OX = 1800, 2400, 900  # a bigger canvas: the shoulders and torso go way past the head
+    try:
+        img = canvas()
+        d = ImageDraw.Draw(img)
+        black, edge, seam = (16, 16, 20, 255), (44, 44, 52, 255), (34, 34, 40, 255)
+        # torso: neck down into broad shoulders, then straight down past the bottom of the frame
+        d.polygon([P(-260, 300), P(260, 300), P(560, 520), P(820, 760), P(860, 1500), P(-860, 1500),
+                   P(-820, 760), P(-560, 520)], fill=black)
+        d.ellipse([*P(-860, 560), *P(860, 1100)], fill=black)
+        # the hood: wide and deep enough to swallow hair and ears
+        d.ellipse([*P(-385, -450), *P(385, 430)], fill=black)
+        # soft fabric shading: a lighter sheen down one side of the hood and shoulder
+        sheen = Image.new("L", img.size, 0)
+        sd = ImageDraw.Draw(sheen)
+        sd.ellipse([*P(-370, -420), *P(-150, 330)], fill=46)
+        sd.ellipse([*P(-760, 640), *P(-420, 1300)], fill=30)
+        sheen = sheen.filter(ImageFilter.GaussianBlur(45 * SS))
+        img.paste(Image.new("RGBA", img.size, (80, 80, 92, 255)), (0, 0), ImageChops.multiply(sheen, img.getchannel("A")))
+        d = ImageDraw.Draw(img)
+        d.line([P(0, -448), P(0, -140)], fill=seam, width=int(4 * SS))  # center seam over the top of the hood
+        d.line([P(-420, 560), P(-470, 1500)], fill=seam, width=int(4 * SS))  # sleeve seams
+        d.line([P(420, 560), P(470, 1500)], fill=seam, width=int(4 * SS))
+        # the face opening, cinched tight: forehead hairline to chin, covering the ears
+        d.ellipse([*P(-186, -128), *P(186, 366)], fill=edge)
+        hole = Image.new("L", img.size, 0)
+        ImageDraw.Draw(hole).ellipse([*P(-168, -108), *P(168, 348)], fill=255)
+        hole = hole.filter(ImageFilter.GaussianBlur(2 * SS))
+        img.putalpha(ImageChops.multiply(img.getchannel("A"), ImageChops.invert(hole)))
+        d = ImageDraw.Draw(img)
+        # drawstrings with metal tips
+        for side in (-1, 1):
+            strand(d, [(side * 62, 360), (side * 72, 440), (side * 64, 520), (side * 76, 590)], 8,
+                   [(200, 200, 210, 255), (230, 230, 238, 255)])
+            d.rounded_rectangle([*P(side * 76 - 8, 586), *P(side * 76 + 8, 624)], radius=3 * SS, fill=(170, 170, 185, 255))
+        # kangaroo pocket
+        d.rounded_rectangle([*P(-330, 1180), *P(330, 1460)], radius=60 * SS, outline=seam, width=int(5 * SS))
+        # neon Onboard logo on the chest
+        logo = Image.open(REPO / "tools" / "onboard-logo.png").convert("RGBA")
+        lw = int(380 * SS)
+        logo = logo.resize((lw, int(logo.height * lw / logo.width)), Image.LANCZOS)
+        cx, cy = P(0, 690)
+        img.alpha_composite(logo, (int(cx - logo.width / 2), int(cy - logo.height / 2)))
+        finish(img, "hoodie", "Hoodie", 9, glow=0, kind="hoodie")
+    finally:
+        W, H, OX = saved
 
 
 def shades(neon_style):

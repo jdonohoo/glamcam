@@ -1,9 +1,9 @@
 {
  "name": "Aquarium",
  "key": "5",
- "x": 0.5,
- "top": 0.4,
- "height": 0.56,
+ "x": 0.79,
+ "top": 0.03,
+ "height": 0.42,
  "variants": {
   "reef": "aquarium-reef.png"
  },

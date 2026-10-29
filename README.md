@@ -59,7 +59,7 @@ Ships with **Glaaron**, the hair that started it all, a **neon magician's top ha
 | Neon Jeff Ears | `neon-jeff-ears` | Jeff Mode, plugged in. Parade ready. |
 | Shades | `shades` | Black sunglasses. Also a layer: press `g` to wear them over *any* wig. |
 | Neon Shades | `neon-shades` | Cyan neon frames. Night vision: imaginary. Also a `g` layer. |
-| Hoodie | `hoodie` | Black athletic hoodie, neon Onboard logo on the chest. Also a layer: press `o` to wear it under *any* wig. |
+| Hoodie | `hoodie` | Black athletic hoodie with a deep hood that covers hair and ears, neon Onboard logo on the chest. Also a layer: press `o` to wear it under *any* wig. |
 | Disco Inferno | `disco-inferno` | Has a comb in it. The comb lives there now. |
 | Synthwave Mullet | `synthwave-mullet` | Business in the front, Miami Vice in the back. |
 | Cyber Mohawk | `cyber-mohawk` | Do not attempt doorways. |
@@ -109,24 +109,36 @@ For those of us who like to lurk in the dark.
 
 Cave Mode keeps the costume's lighting from the moment you froze it, so it stays bright while you go dark. Neon wigs and props look especially haunted.
 
+> 🥷 **Pro tip:** Cave Mode + [hoodie](#-hoodie--shades) + Neon Jeff Ears + neon shades + neon mustache is, scientifically speaking, peak.
+
 ## 🪩 Neon Props
 
-<p align="center"><img src="assets/props.png" alt="Neon props on the wall behind the mascot: an Onboard sign (1), a disco ball (2), a floating neon keyboard (3), and a four-pane window with 'sucks to suck' (4)"></p>
+<p align="center"><img src="assets/props.png" alt="Neon props on the wall behind the mascot: an Onboard sign (1), a disco ball hanging top middle (2), a floating neon keyboard (3), a four-pane window with 'sucks to suck' (4), and the aquarium in the top-right corner (5)"></p>
 
 Decorate the wall behind you. Press a number to toggle a prop, **`0`** to clear the wall. (Prop **`5`** is the [Aquarium](#-the-aquarium), which gets its own section, because fish.)
 
 | Key | Prop | Stats |
 |---|---|---|
 | `1` | **Onboard sign**: our first name, in pink neon, flickering like a real sign | Est.: **A while ago** |
-| `2` | **Disco ball**: hanging from the ceiling, sparkling | Groove: **Permanent** |
+| `2` | **Disco ball**: hanging from the ceiling, top middle, sparkling | Groove: **Permanent** |
 | `3` | **Floating neon keyboard**: gently bobbing in mid-air | Keys pressed: **None, it floats** |
 | `4` | **Sucks to suck**: a neon four-pane window, our [Windows support policy](#-qa-policy) made visible | Sympathy: **None** |
 
 Props hang *behind* you: GlamCam already knows which pixels are you (the same trick the background blur uses), so it draws props only on the background and you stay in front. Walk in front of the disco ball and it disappears behind your head, like a real one. In the dark with Cave Mode they keep glowing.
 
-Heads-up: in the mirrored preview window the Onboard sign reads backwards, just like a real sign behind you in a selfie. Everyone on the call sees it the right way round.
+**Put them wherever you want.** Every prop starts in a default spot, and then it's yours to arrange:
 
-Want them somewhere else? Each prop has a little settings file in [`props/`](props) (`x`, `top`, `height` as fractions of the frame), and you can drop in your own transparent PNG with a matching `.json` to add a prop.
+| Do this (in the GlamCam window) | To |
+|---|---|
+| 🖱️ **Click and drag** a prop | Move it anywhere |
+| 🖱️ **Scroll** over a prop | Shrink or grow it |
+| `[` / `]` | Shrink / grow the last prop you grabbed (for trackpads and wheel-less mice) |
+| 🖱️ **Double-click** a prop | Bring it **in front of you**, so your chair and body can't block it. Double-click again to send it back to the wall |
+| `r` | Put every prop back in its default spot and size |
+
+Your arrangement saves the moment you let go, and it's there next time you start GlamCam (it lives in `prop-positions.json`, next to your saved wig fits). Is your chair eating the aquarium? Shrink it with the scroll wheel, drag it into a corner, or double-click it to bring it in front.
+
+Heads-up: in the mirrored preview window the Onboard sign reads backwards (and the aquarium shows on the left), just like a real room behind you in a selfie. Everyone on the call sees it the right way round. Dragging works the same either way: grab what you see.
 
 ## 🥷 Hoodie & Shades
 
@@ -136,7 +148,7 @@ Two layers that go with **everything**. They stack with whatever wig you're wear
 
 | Key | Layer | Stats |
 |---|---|---|
-| `o` | **Hoodie mode**: a black athletic hoodie with a neon **Onboard** logo on the chest. The hood goes *under* your wig and covers your real hair | Hair: **Hooded** · Drawstrings: **Symmetrical** |
+| `o` | **Hoodie mode**: a black athletic hoodie with a neon **Onboard** logo on the chest. The deep hood goes *under* your wig and covers your real hair *and* ears; the body runs off the bottom of the frame like a real hoodie | Hair: **Hooded** · Ears: **Also hooded** |
 | `g` | **Sunglasses**: cycles none → Shades → Neon Shades. They go *on top* of everything | Cool: **Extremely** · Indoors: **Yes, obviously** |
 
 Stacking order, bottom to top: **hoodie** → **wig** → **mustache** → **shades**. Hoodie + Top Hat + Mustache + Neon Shades is officially known as **The Full Send**.
@@ -315,7 +327,7 @@ In this route the preview window is mirrored like a selfie camera. Meet still ge
 
 ## 🎮 Controls
 
-<p align="center"><img src="assets/keys.png" alt="Controls: WASD move, - = size, N next wig, M mustache, X hide hair (Mike Mode), F Cave Mode, B blur, H wig on/off, L lighting, P save, K or Cmd+K keys window, 1-5 props, T aquarium fish, O hoodie, G sunglasses"></p>
+<p align="center"><img src="assets/keys.png" alt="Controls: WASD move, - = size, N next wig, M mustache, X hide hair (Mike Mode), F Cave Mode, B blur, H wig on/off, L lighting, P save, K or Cmd+K keys window, 1-5 props, mouse drag/scroll/double-click props, T aquarium fish, O hoodie, G sunglasses"></p>
 
 Click the **GlamCam** window first, then:
 
@@ -329,6 +341,9 @@ Click the **GlamCam** window first, then:
 | `g` | 😎 [Sunglasses](#-hoodie--shades): cycles none → Shades → Neon Shades, over any wig |
 | `1` `2` `3` `4` | 🪩 [Neon props](#-neon-props) on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck. `0` clears them |
 | `5` | 🐠 [The Aquarium](#-the-aquarium) on / off |
+| 🖱️ drag / scroll / double-click | Move, resize, or bring a prop in front of you ([details](#-neon-props)) |
+| `[` `]` | Shrink / grow the last prop you grabbed |
+| `r` | Reset every prop to its default spot and size |
 | `t` | 🐠 Who's in the aquarium: each fish on its own, Freshwater Community, Saltwater Community, or Party Mode (everyone) |
 | `x` | 🫥 Hide your real hair (**Mike Mode**): paints it out so it can't peek out from under the wig |
 | `f` | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume in place, turn your lights off, lurk with glowing blue eyes. `f` again to resume tracking |
@@ -401,7 +416,7 @@ Pass these to `run.sh` / `run.bat`, or to the app's executable. Every one of the
 
 | Option | Does | Key |
 |---|---|---|
-| `--props IDS` | Props on the wall, comma-separated: `onboard-sign`, `disco-ball`, `neon-keyboard`, `sucks-to-suck`, `aquarium` | `1`–`5` |
+| `--props IDS` | Props on the wall, comma-separated: `onboard-sign`, `disco-ball`, `neon-keyboard`, `sucks-to-suck`, `aquarium`. They use the spots you dragged them to | `1`–`5` |
 | `--aquarium FISH` | Who's in the tank. Fresh: `discus`, `angelfish`, `stingray`, `pleco`, `freshwater` (community). Salt: `manta`, `clownfish`, `lionfish`, `saltwater` (community). Or `party` for everyone | `t` |
 | `--no-blur` | Start with background blur off | `b` |
 

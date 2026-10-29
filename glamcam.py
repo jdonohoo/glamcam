@@ -13,6 +13,9 @@ Keys (click the preview window first):
   m        mustache on any wig (cycles)          k      floating keys window (cmd+K too)
   o        hoodie mode on/off                    g      sunglasses (cycles)
   1-5      neon props behind you (0 clears)      t      who's in the aquarium (cycles)
+  drag     move a prop with the mouse            r      put the props back where they started
+  scroll   resize the prop under the mouse       [ ]    shrink / grow the last prop you grabbed
+  dbl-click  a prop: in front of you / back on the wall
   p        save the wig fit
   q/Esc    quit
 """
@@ -50,6 +53,7 @@ MODEL_DIR = BUNDLE / "models"
 WIG_DIRS = [BUNDLE / "wigs", USER_DIR / "my-wigs"]
 PROP_DIR = BUNDLE / "props"
 FIT_FILE = USER_DIR / "fit.json"
+PROP_SPOTS_FILE = USER_DIR / "prop-positions.json"  # where you dragged the props to
 WINDOW = "GlamCam"  # never changes, so OBS Window Capture finds it again after a restart
 
 _MODEL_BASE = "https://storage.googleapis.com/mediapipe-models"
@@ -185,6 +189,8 @@ class Prop:
         self.name = meta.get("name", self.id)
         self.key = str(meta["key"])
         self.x, self.top, self.height = meta["x"], meta["top"], meta["height"]
+        self.default_spot = (self.x, self.top, self.height)
+        self.front = False  # double-click: draw in front of you instead of on the wall behind
         self.bob = meta.get("bob", 0.0)  # floats up and down by this fraction of the frame
         self.flicker = meta.get("flicker", False)  # neon-sign stutter
         self.images = {"default": self._load(png_path)}
@@ -195,6 +201,20 @@ class Prop:
         for f in self.all_fish():
             f["images"] = [self._load(PROP_DIR / "sprites" / n) for n in f.get("frames", [f.get("sprite")])]
         self._sized = {}
+
+    def place(self, x, top, height=None):
+        self.x, self.top = x, top
+        if height is not None and height != self.height:
+            self.height = float(np.clip(height, 0.05, 1.5))
+            self._sized.clear()  # re-scale the art (and fish) at the new size
+            for f in self.all_fish():
+                f.pop("sized", None)
+
+    def resize(self, factor):
+        """Grow or shrink around the prop's center."""
+        old = self.height
+        self.place(self.x, self.top, old * factor)
+        self.top += (old - self.height) / 2
 
     @staticmethod
     def _load(path):
@@ -249,7 +269,77 @@ def load_props():
             props.append(Prop(png))
         except (ValueError, KeyError, json.JSONDecodeError, OSError) as e:
             print(f"Skipping prop {png.name}: {e}")
+    try:
+        spots = json.loads(PROP_SPOTS_FILE.read_text()) if PROP_SPOTS_FILE.exists() else {}
+    except (OSError, json.JSONDecodeError):
+        spots = {}
+    for pr in props:
+        if pr.id in spots:
+            spot = spots[pr.id]
+            pr.place(*spot[:3])
+            pr.front = bool(spot[3]) if len(spot) > 3 else False
     return sorted(props, key=lambda pr: pr.key)
+
+
+def save_prop_spots(props):
+    """Remember every prop that has been dragged away from its default spot."""
+    moved = {pr.id: [round(pr.x, 4), round(pr.top, 4), round(pr.height, 4), pr.front]
+             for pr in props if (pr.x, pr.top, pr.height) != pr.default_spot or pr.front}
+    PROP_SPOTS_FILE.write_text(json.dumps(moved, indent=1) + "\n")
+
+
+class PropDragger:
+    """Click and drag props around the GlamCam window, scroll (or [ ]) to resize; saved when you let go."""
+
+    def __init__(self, renderer, mirrored):
+        self.r, self.mirrored = renderer, mirrored
+        self.grab = None  # (prop, grab offset x, grab offset y) while dragging
+        self.selected = None  # the last prop you grabbed, for [ and ]
+        self.size = (1, 1)
+
+    def _hit(self, fx, fy):
+        for pr in reversed(self.r.props):  # topmost first
+            left, top, pw, ph = self.r.prop_boxes.get(pr.id, (0, 0, 0, 0))
+            if left <= fx < left + pw and top <= fy < top + ph:
+                return pr
+        return None
+
+    def resize(self, factor, pr=None):
+        pr = pr or (self.selected if self.selected in self.r.props else None)
+        if pr:
+            pr.resize(factor)
+            save_prop_spots(self.r.all_props)
+
+    def _frame_xy(self, x, y):
+        w, _ = self.size
+        return (w - 1 - x if self.mirrored else x), y  # the preview may be a mirror image
+
+    def on_mouse(self, event, x, y, flags, param):
+        w, h = self.size
+        fx, fy = self._frame_xy(x, y)
+        if event == cv2.EVENT_LBUTTONDOWN:
+            pr = self._hit(fx, fy)
+            if pr:
+                self.grab = (pr, fx - pr.x * w, fy - pr.top * h)
+                self.selected = pr
+        elif event == cv2.EVENT_LBUTTONDBLCLK:
+            pr = self._hit(fx, fy)
+            if pr:
+                pr.front = not pr.front
+                save_prop_spots(self.r.all_props)
+        elif event in (cv2.EVENT_MOUSEWHEEL, cv2.EVENT_MOUSEHWHEEL):
+            pr = self._hit(fx, fy)
+            if pr:
+                self.selected = pr
+                self.resize(1.06 if cv2.getMouseWheelDelta(flags) > 0 else 1 / 1.06, pr)
+        elif event == cv2.EVENT_MOUSEMOVE and self.grab:
+            pr, ox, oy = self.grab
+            pr.x = float(np.clip((fx - ox) / w, 0.0, 1.0))
+            pr.top = float(np.clip((fy - oy) / h, -0.5, 0.95))
+        elif event == cv2.EVENT_LBUTTONUP and self.grab:
+            self.grab = None
+            save_prop_spots(self.r.all_props)
+
 
 
 def make_wig(photo, name, out_dir=USER_DIR / "my-wigs"):
@@ -323,6 +413,8 @@ class GlamRenderer:
         self.hair_mask = None
         self.pinned = False  # cave mode: freeze the costume in place, then lurk in the dark
         self.props = []  # neon objects on the wall behind you
+        self.all_props = []  # every prop, on the wall or not (for saving positions)
+        self.prop_boxes = {}  # where each prop was last drawn, for click-and-drag
         self.species = "discus"  # who lives in the aquarium prop
 
         with quiet_native_logs():
@@ -450,8 +542,11 @@ class GlamRenderer:
             a = hair[..., None]
             out = out * (1 - a) + fill * a
         if self.props:
-            a = self.mask[..., None]
-            out = out * a + self._draw_props(out.copy(), ts) * (1 - a)
+            behind = [pr for pr in self.props if not pr.front]
+            if behind:  # on the wall: you stay in front of them
+                a = self.mask[..., None]
+                out = out * a + self._draw_props(out.copy(), ts, behind) * (1 - a)
+            out = self._draw_props(out, ts, [pr for pr in self.props if pr.front])  # in front of you
         return out.astype(np.uint8)
 
     @staticmethod
@@ -468,14 +563,15 @@ class GlamRenderer:
         a = crop[..., 3:] / 255 * alpha
         img[y0:y1, x0:x1] = crop[..., :3] * a + img[y0:y1, x0:x1] * (1 - a)
 
-    def _draw_props(self, img, ts):
+    def _draw_props(self, img, ts, props):
         h, w = img.shape[:2]
         t = ts / 1000
-        for pr in self.props:
+        for pr in props:
             p = pr.sized(h, pr.variant(self.species) if pr.swim else "default")
             ph, pw = p.shape[:2]
             top = int((pr.top + pr.bob * np.sin(t * 1.7)) * h)
             left = int(pr.x * w - pw / 2)
+            self.prop_boxes[pr.id] = (left, top, pw, ph)
             stutter = pr.flicker and (ts // 70 * 2654435761) % 100 < 4  # the occasional neon stutter
             self._blit(img, p, left, top, alpha=0.3 if stutter else 1.0)
             if pr.swim:
@@ -635,7 +731,7 @@ def draw_hud(img, text, y=34):
 HELP = [("w a s d", "move the wig"), ("- / =", "shrink / grow"), ("n", "next wig"), ("m", "mustache on any wig"),
         ("o", "hoodie mode"), ("g", "sunglasses"),
         ("x", "hide my real hair"), ("f", "cave mode (glowing eyes)"), ("b", "background blur"),
-        ("1 - 5", "neon props (0 = none)"), ("t", "aquarium fish"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
+        ("1 - 5", "neon props (0 = none)"), ("drag", "move a prop"), ("scroll  [ ]", "resize a prop"), ("dbl-click", "prop in front of you"), ("r", "reset props"), ("t", "aquarium fish"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
         ("k  cmd+K", "this window"),
         ("q", "quit")]
 KEYS_WINDOW = "GlamCam Keys"
@@ -731,6 +827,10 @@ def run(args):
     if args.glasses:
         renderer.glasses = next((wg for wg in shades[1:] if wg.id == args.glasses), None)
     props = {pr.key: pr for pr in load_props()}
+    renderer.all_props = list(props.values())
+    dragger = PropDragger(renderer, mirrored=not args.obs_window)
+    cv2.namedWindow(WINDOW)
+    cv2.setMouseCallback(WINDOW, dragger.on_mouse)
     tank = next((pr for pr in props.values() if pr.swim), None)
     species = tank.swim["order"] if tank else ["discus"]
     if args.aquarium == "all":  # older name for party mode
@@ -754,6 +854,7 @@ def run(args):
             view = out.copy() if args.obs_window else cv2.flip(out, 1)
             if time.monotonic() < hud_until:
                 draw_hud(view, f"{renderer.wig.name}  (n = next wig, k = keys)")
+            dragger.size = (view.shape[1], view.shape[0])
             cv2.imshow(WINDOW, view)
 
             k = cv2.waitKey(1) & 0xFF
@@ -773,6 +874,13 @@ def run(args):
                     hud_until = time.monotonic() + 2
             elif k == ord("0"):
                 renderer.props = []
+            elif k == ord("r"):  # every prop back to its default spot and size
+                for pr in renderer.all_props:
+                    pr.place(*pr.default_spot)
+                    pr.front = False
+                save_prop_spots(renderer.all_props)
+            elif k in (ord("["), ord("]")):
+                dragger.resize(1.08 if k == ord("]") else 1 / 1.08)
             elif chr(k) in props:
                 pr = props[chr(k)]
                 renderer.props = [p for p in renderer.props if p is not pr] if pr in renderer.props \
