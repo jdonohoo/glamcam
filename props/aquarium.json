@@ -19,25 +19,33 @@
   "order": [
    "discus",
    "angelfish",
-   "manta",
+   "stingray",
    "pleco",
+   "freshwater",
+   "manta",
    "clownfish",
    "lionfish",
-   "all"
+   "saltwater",
+   "party"
   ],
   "names": {
    "discus": "Discus",
    "angelfish": "Angelfish",
-   "manta": "Manta Ray",
+   "stingray": "Stingray",
    "pleco": "Pleco",
+   "freshwater": "Freshwater Community",
+   "manta": "Manta Ray",
    "clownfish": "Clownfish",
    "lionfish": "Lionfish",
-   "all": "Everybody"
+   "saltwater": "Saltwater Community",
+   "party": "Party Mode"
   },
   "tank": {
    "manta": "reef",
    "clownfish": "reef",
    "lionfish": "reef",
+   "saltwater": "reef",
+   "party": "reef",
    "all": "reef"
   },
   "species": {
@@ -80,6 +88,40 @@
      "y": 0.55,
      "phase": 1.1,
      "bob": 0.09
+    }
+   ],
+   "stingray": [
+    {
+     "frames": [
+      "stingray-white-0.png",
+      "stingray-white-1.png",
+      "stingray-white-2.png",
+      "stingray-white-3.png",
+      "stingray-white-4.png",
+      "stingray-white-5.png"
+     ],
+     "fps": 6,
+     "size": 0.15,
+     "speed": 0.03,
+     "y": 0.98,
+     "phase": 0.15,
+     "bob": 0.01
+    },
+    {
+     "frames": [
+      "stingray-neon-0.png",
+      "stingray-neon-1.png",
+      "stingray-neon-2.png",
+      "stingray-neon-3.png",
+      "stingray-neon-4.png",
+      "stingray-neon-5.png"
+     ],
+     "fps": 6,
+     "size": 0.13,
+     "speed": 0.04,
+     "y": 0.9,
+     "phase": 1.2,
+     "bob": 0.015
     }
    ],
    "manta": [
@@ -147,6 +189,37 @@
      "phase": 0.4,
      "bob": 0.04
     }
+   ]
+  },
+  "groups": {
+   "freshwater": [
+    "discus",
+    "angelfish",
+    "stingray",
+    "pleco"
+   ],
+   "saltwater": [
+    "manta",
+    "clownfish",
+    "lionfish"
+   ],
+   "party": [
+    "discus",
+    "angelfish",
+    "stingray",
+    "pleco",
+    "manta",
+    "clownfish",
+    "lionfish"
+   ],
+   "all": [
+    "discus",
+    "angelfish",
+    "stingray",
+    "pleco",
+    "manta",
+    "clownfish",
+    "lionfish"
    ]
   }
  }

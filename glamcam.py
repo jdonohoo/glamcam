@@ -207,9 +207,12 @@ class Prop:
         return [f for school in (self.swim or {}).get("species", {}).values() for f in school]
 
     def school(self, species):
-        """Fish for one species, or every species for "all"."""
+        """Fish for one species, or a whole group (freshwater / saltwater community, party mode)."""
         everyone = self.swim["species"]
-        return self.all_fish() if species == "all" else everyone.get(species, everyone[self.swim["default"]])
+        group = self.swim.get("groups", {}).get(species)
+        if group:
+            return [f for name in group for f in everyone[name]]
+        return everyone.get(species, everyone[self.swim["default"]])
 
     def variant(self, species):
         return (self.swim or {}).get("tank", {}).get(species, "default")
@@ -730,6 +733,8 @@ def run(args):
     props = {pr.key: pr for pr in load_props()}
     tank = next((pr for pr in props.values() if pr.swim), None)
     species = tank.swim["order"] if tank else ["discus"]
+    if args.aquarium == "all":  # older name for party mode
+        args.aquarium = "party"
     if args.aquarium in species:
         renderer.species = args.aquarium
     for pid in filter(None, (args.props or "").split(",")):
@@ -821,7 +826,7 @@ def self_test():
     r.stache = next((wg for wg in wigs if wg.kind == "mustache"), None)
     r.hoodie = next((wg for wg in wigs if wg.kind == "hoodie"), None)
     r.glasses = next((wg for wg in wigs if wg.kind == "glasses"), None)
-    r.species = "all"
+    r.species = "party"
     r.props = load_props()
     frame = np.full((720, 1280, 3), 128, np.uint8)
     for k in range(3):
@@ -849,8 +854,8 @@ def main():
     ap.add_argument("--hoodie", action="store_true", help="start in hoodie mode")
     ap.add_argument("--glasses", metavar="NAME", help="start with sunglasses on: shades, neon-shades")
     ap.add_argument("--props", metavar="IDS", help="neon props to start with, comma-separated (see props/)")
-    ap.add_argument("--aquarium", metavar="FISH", help="who lives in the aquarium: discus, angelfish, manta, pleco, "
-                                                        "clownfish, lionfish, all")
+    ap.add_argument("--aquarium", metavar="FISH", help="who lives in the aquarium: discus, angelfish, stingray, pleco, freshwater, "
+                                                        "manta, clownfish, lionfish, saltwater, party")
     ap.add_argument("--smooth", type=float, default=0.5, help="0 = raw tracking, 0.9 = very smooth/laggy")
     ap.add_argument("--no-vcam", action="store_true", help="preview only, don't send to the virtual camera")
     ap.add_argument("--obs-window", action="store_true",

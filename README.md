@@ -145,23 +145,32 @@ Hoodie mode and Mike Mode (`x`) team up nicely: the hood covers the top of your 
 
 ## 🐠 The Aquarium
 
-<p align="center"><img src="assets/aquarium.png" alt="The Aquarium: Discus, Angelfish, Manta Ray, Pleco, Clownfish, Lionfish and Everybody, with the freshwater kelp tank and the saltwater reef tank"></p>
+<p align="center"><img src="assets/aquarium.png" alt="The Aquarium. Freshwater: Discus, Angelfish, Stingray, Pleco, Freshwater Community. Saltwater: Manta Ray, Clownfish, Lionfish, Saltwater Community, and Party Mode with every fish"></p>
 
 For the fish lovers. Press **`5`** to put a big neon tank on the wall behind you, then press **`t`** to choose who lives in it. The fish actually swim: they cruise back and forth, turn around at the glass, and drift up and down while bubbles rise.
 
-| `t` | Who | Water | How they move | Stats |
-|---|---|---|---|---|
-| 1 | **Discus** | 🌿 Fresh | Three of them (turquoise, red pigeon-blood and pink) cruising the middle | Shape: **Frisbee** · Attitude: **Regal** |
-| 2 | **Angelfish** | 🌿 Fresh | Two, drifting slowly up and down | Fins: **Dramatic** · Speed: **Leisurely** |
-| 3 | **Manta Ray** | 🪸 Salt | A small manta that flaps its wings as it glides | Wingspan: **Compact** · Flaps: **Constantly** |
-| 4 | **Pleco** | 🌿 Fresh | One scoots along the gravel (stop, scoot, stop), one is suckered onto the glass | Job: **Glass cleaner** · Suction: **Industrial** |
-| 5 | **Clownfish** | 🪸 Salt | Two, staying low near their anemone | Lost: **Never (we checked)** |
-| 6 | **Lionfish** | 🪸 Salt | One, hovering menacingly | Personal space: **Mandatory** |
-| 7 | **Everybody** | 🪸 Reef | All of the above, in one tank | Peace: **Unlikely** · Vibes: **Maximum** |
+**🌿 Freshwater** (kelp tank: swaying neon kelp, a treasure chest)
 
-**Two tanks:** freshwater fish get the **kelp tank** (swaying neon kelp, a treasure chest). Saltwater fish and Everybody get the **reef tank**, with coral instead of kelp: branching antler coral, a brain coral, a sea fan, and an anemone for the clownfish.
+| Mode | How they move | Stats |
+|---|---|---|
+| **Discus** | Three of them (turquoise, red pigeon-blood and pink) cruising the middle | Shape: **Frisbee** · Attitude: **Regal** |
+| **Angelfish** | Two, drifting slowly up and down | Fins: **Dramatic** · Speed: **Leisurely** |
+| **Stingray** | Two freshwater rays gliding along the bottom with rippling edges: one black with white spots, one black with neon spots | Spots: **White or neon** · Edges: **Rippling** |
+| **Pleco** | One scoots along the gravel (stop, scoot, stop), one is suckered onto the glass | Job: **Glass cleaner** · Suction: **Industrial** |
+| **Freshwater Community** | All of the freshwater fish above, sharing the kelp tank | Who: **All the freshwater** |
 
-Press `t` while the tank is off and it turns on for you. Start with a particular crew using `--aquarium manta` (any of `discus`, `angelfish`, `manta`, `pleco`, `clownfish`, `lionfish`, `all`).
+**🪸 Saltwater** (reef tank: antler coral, a brain coral, a sea fan, and an anemone for the clownfish)
+
+| Mode | How they move | Stats |
+|---|---|---|
+| **Manta Ray** | A small manta that flaps its wings as it glides | Wingspan: **Compact** · Flaps: **Constantly** |
+| **Clownfish** | Two, staying low near their anemone | Lost: **Never (we checked)** |
+| **Lionfish** | One, hovering menacingly | Personal space: **Mandatory** |
+| **Saltwater Community** | All of the saltwater fish above, sharing the reef | Who: **All the saltwater** |
+
+**🎉 Party Mode:** every fish, freshwater and salt, all in the reef tank. Biologically questionable. Spiritually correct.
+
+Press **`t`** to cycle in this order: Discus → Angelfish → Stingray → Pleco → Freshwater Community → Manta Ray → Clownfish → Lionfish → Saltwater Community → Party Mode. If the tank is off, `t` turns it on for you. Start with a particular crew using `--aquarium` and any of `discus`, `angelfish`, `stingray`, `pleco`, `freshwater`, `manta`, `clownfish`, `lionfish`, `saltwater`, `party`.
 
 ## 🚀 Getting started
 
@@ -320,7 +329,7 @@ Click the **GlamCam** window first, then:
 | `g` | 😎 [Sunglasses](#-hoodie--shades): cycles none → Shades → Neon Shades, over any wig |
 | `1` `2` `3` `4` | 🪩 [Neon props](#-neon-props) on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck. `0` clears them |
 | `5` | 🐠 [The Aquarium](#-the-aquarium) on / off |
-| `t` | 🐠 Who's in the aquarium: Discus → Angelfish → Manta Ray → Pleco → Clownfish → Lionfish → Everybody |
+| `t` | 🐠 Who's in the aquarium: each fish on its own, Freshwater Community, Saltwater Community, or Party Mode (everyone) |
 | `x` | 🫥 Hide your real hair (**Mike Mode**): paints it out so it can't peek out from under the wig |
 | `f` | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume in place, turn your lights off, lurk with glowing blue eyes. `f` again to resume tracking |
 | `h` | Wig off / on (for when your skip-level joins) |
@@ -393,7 +402,7 @@ Pass these to `run.sh` / `run.bat`, or to the app's executable. Every one of the
 | Option | Does | Key |
 |---|---|---|
 | `--props IDS` | Props on the wall, comma-separated: `onboard-sign`, `disco-ball`, `neon-keyboard`, `sucks-to-suck`, `aquarium` | `1`–`5` |
-| `--aquarium FISH` | Who's in the tank: `discus`, `angelfish`, `manta`, `pleco`, `clownfish`, `lionfish`, `all` | `t` |
+| `--aquarium FISH` | Who's in the tank. Fresh: `discus`, `angelfish`, `stingray`, `pleco`, `freshwater` (community). Salt: `manta`, `clownfish`, `lionfish`, `saltwater` (community). Or `party` for everyone | `t` |
 | `--no-blur` | Start with background blur off | `b` |
 
 **🎛️ How it looks**
@@ -424,7 +433,7 @@ Pass these to `run.sh` / `run.bat`, or to the app's executable. Every one of the
 **Example: the full send**
 
 ```bash
-./run.sh --wig top-hat --mustache mustache --glasses neon-shades --hoodie --props aquarium,disco-ball --aquarium all
+./run.sh --wig top-hat --mustache mustache --glasses neon-shades --hoodie --props aquarium,disco-ball --aquarium party
 ```
 
 ## 🔬 QA Policy

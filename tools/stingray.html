@@ -1,0 +1,41 @@
+<!-- Source for props/sprites/stingray-{white,neon}-0..5.png: 6 ripple frames per colorway; crop each colorway with one shared bounding box. -->
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:transparent}.p{display:inline-block;padding:24px}</style></head><body>
+<div id="frames"></div>
+<script>
+// Freshwater stingray (Potamotrygon), facing right, seen from slightly above as it glides over the gravel.
+// 6 frames of the disc edge rippling front to back, like the real thing. Two colorways.
+const NS = 'http://www.w3.org/2000/svg';
+const N = 6;
+const disc = (k) => {
+  const pts = [];
+  for (let i = 0; i <= 64; i++) {
+    const a = i / 64 * 2 * Math.PI, x = Math.cos(a) * 96;
+    const wave = 1 + 0.07 * Math.sin(Math.cos(a) * 5 - k / N * 2 * Math.PI);  // a wave running nose to tail along both edges
+    pts.push([x, Math.sin(a) * 44 * wave]);
+  }
+  return 'M' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' L') + ' Z';
+};
+let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const spots = [];  // jittered grid, so the spots cover the whole disc evenly
+for (let gx = -78; gx <= 78; gx += 17) for (let gy = -32; gy <= 32; gy += 13) {
+  const x = gx + (rnd() - .5) * 9, y = gy + (rnd() - .5) * 7;
+  if ((x / 88) ** 2 + (y / 38) ** 2 < 0.8 && !(x > 40 && Math.abs(y) > 5 && Math.abs(y) < 20)) spots.push([x, y, 2.6 + rnd() * 2.8]);
+}
+const looks = [
+  {id: 'white', body: '#101014', edge: '#E8E8F0', spot: () => '#FFFFFF', glow: '#BFC7D6'},
+  {id: 'neon', body: '#0C0812', edge: '#00F0FF', spot: (i) => ['#FF5FD2', '#00F0FF', '#FFE95A'][i % 3], glow: '#FF5FD2'},
+];
+for (const L of looks) for (let k = 0; k < N; k++) {
+  const w = document.createElement('div'); w.className = 'p'; w.id = `${L.id}-${k}`;
+  w.innerHTML = `<svg width="300" height="150" viewBox="-150 -75 300 150">
+   <defs><filter id="g${L.id}${k}" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+   <clipPath id="c${L.id}${k}"><path d="${disc(k)}"/></clipPath></defs>
+   <path d="M-92,2 Q-118,${4 + 3 * Math.sin(k / N * 6.28)} -146,${-2 + 4 * Math.sin(k / N * 6.28 + 1)}" fill="none" stroke="${L.edge}" stroke-width="5" stroke-linecap="round" filter="url(#g${L.id}${k})"/>
+   <path d="${disc(k)}" fill="${L.body}" stroke="${L.edge}" stroke-width="3.5" filter="url(#g${L.id}${k})"/>
+   <g clip-path="url(#c${L.id}${k})">${spots.map(([x, y, r], i) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${L.spot(i)}"${L.id === 'neon' ? ` filter="url(#g${L.id}${k})"` : ''}/>`).join('')}</g>
+   <ellipse cx="54" cy="-12" rx="6" ry="4" fill="#2A2A33" stroke="${L.edge}" stroke-width="1.5"/><ellipse cx="54" cy="12" rx="6" ry="4" fill="#2A2A33" stroke="${L.edge}" stroke-width="1.5"/>
+   <circle cx="56" cy="-12" r="2" fill="${L.glow}"/><circle cx="56" cy="12" r="2" fill="${L.glow}"/>
+  </svg>`;
+  document.getElementById('frames').appendChild(w);
+}
+</script></body></html>
