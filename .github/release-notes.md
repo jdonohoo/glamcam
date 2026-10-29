@@ -14,7 +14,7 @@ Glaaron · 🎩 Top Hat · Glaaron Magnifique · 👑 The Ultimate Glaaron (hair
 ## First launch
 
 - **macOS:** unzip, drag **GlamCam.app** into **Applications**, double-click. The app isn't signed by Apple, so macOS blocks the first open. Go to **System Settings → Privacy & Security → Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/GlamCam.app`). Allow the camera when asked.
-- **Windows:** unzip anywhere, keep **GlamCam.exe** inside its folder, and double-click it. If SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
+- **Windows** (lovingly full-sent: built and boot-tested by a robot, never by a human with a webcam): unzip anywhere, keep **GlamCam.exe** inside its folder, and double-click it. If SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
 
 GlamCam opens a window called **GlamCam** with your wig on. To get it into Google Meet, capture that window in OBS and start OBS's virtual camera. Full steps (including the one-time OBS setup) are in the [README](https://github.com/jdonohoo/glamcam#-getting-started).
 

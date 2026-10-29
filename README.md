@@ -10,6 +10,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-ff5fd2?style=for-the-badge&labelColor=1b0b3a" alt="macOS">
   <img src="https://img.shields.io/badge/Windows-10%20%26%2011-00f0ff?style=for-the-badge&labelColor=1b0b3a" alt="Windows">
+  <img src="https://img.shields.io/badge/Windows%20QA-full%20send-ff3b6b?style=for-the-badge&labelColor=1b0b3a" alt="Windows QA: full send">
   <img src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-7d56f4?style=for-the-badge&labelColor=1b0b3a" alt="Python 3.10-3.13">
   <img src="https://img.shields.io/badge/hair-yes-ffe95a?style=for-the-badge&labelColor=1b0b3a" alt="hair: yes">
 </p>
@@ -97,6 +98,8 @@ GlamCam's video reaches Meet through the **OBS Virtual Camera**, so OBS needs to
    ```bash
    systemextensionsctl list | grep -i obs
    ```
+
+> 🪟 **A word on Windows QA:** we do **zero** hands-on testing on Windows. We rapid-test on Mac and Linux and full send the Windows build, the way software is meant to be shipped. To be fair, a GitHub robot does check that every Windows release builds, boots, and can find all its wigs. No human has ever pointed a webcam at it. If it breaks, [open an issue](https://github.com/jdonohoo/glamcam/issues) and we'll pretend to be surprised.
 
 **Windows**
 
