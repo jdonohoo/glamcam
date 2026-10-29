@@ -2,3 +2,4 @@ mediapipe  # brings opencv-contrib-python, matplotlib and friends
 numpy
 pyvirtualcam
 certifi
+sounddevice  # Cave Mode mouth listens to your mic

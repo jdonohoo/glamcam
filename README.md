@@ -86,9 +86,12 @@ Every feature is one key away. Click the GlamCam window and go.
 | 🥷 **[Hoodie mode](#-hoodie--shades)**: a black hoodie with a neon Onboard logo, under *any* wig | `o` | Hair: **Hooded** |
 | 😎 **[Sunglasses](#-hoodie--shades)**: shades or neon shades, over *any* wig | `g` | Cool: **Extremely** |
 | 🫥 **Hair hider (Mike Mode)**: paints your real hair out so it can't sneak out from under the wig | `x` | Hair: **Hidden** · Shame: **Also hidden** |
-| 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume, kill the lights, lurk with glowing neon-blue eyes | `f` | Lights: **Optional** · Eyes: **Glowing** |
+| 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume, kill the lights, lurk with glowing neon-blue eyes and a neon mouth that talks | `f` | Lights: **Optional** · Mouth: **Running** |
 | 🪩 **[Neon props](#-neon-props)**: an Onboard sign, a disco ball, a floating neon keyboard and a "sucks to suck" window, hung on the wall *behind* you | `1`–`4` | Wall: **Decorated** |
 | 🐠 **[The Aquarium](#-the-aquarium)**: a big neon tank of swimming fish behind you. Pick who lives in it | `5`, then `t` | Fish: **Plenty** |
+| 🫥 **Hide me**: removes *you*, blacks out the room, and leaves just your props | `v` | You: **Gone** · Props: **Staying** |
+| 🔭 **Room mode**: zooms the camera out so there's more wall for props | `z` | Wall space: **More** |
+| 📺 **1080p** out of the box, even if your webcam is 720p | | Pixels: **All of them** |
 | 🌫️ **Background blur**: your laundry pile, gone | `b` | Laundry: **Gone** |
 | 💡 **Lighting match**: dim a wig to match your room | `l` | Default: **Off, because funnier** |
 | 🧪 **[Make your own wig](#-make-your-own-wig)**: any photo, any hair | `--make-wig` | Kevins: **Unlimited** |
@@ -105,7 +108,11 @@ For those of us who like to lurk in the dark.
 2. Press **`f`**. The costume freezes exactly where it is.
 3. Turn your lights off. Your face fades into the void; your Jeff Ears, Glaaron hair or neon mustache stay floating right where your head was.
 4. As the room goes dark, **two neon-blue eyes** fade in where yours were. They blink every few seconds. Nobody asked for this. Everybody needed it.
-5. Press **`f`** again to come back to the land of the face-tracked.
+5. A **neon mouth** fades in too, and **it talks when you talk**: it listens to your microphone, so it works in total darkness (when there's enough light it follows your actual lips). Quiet: a neon smile. Talking: it opens. Yelling: tongue.
+6. **Drag the frozen costume** anywhere in the GlamCam window (scroll over it, or `[` `]`, to resize). Park your glowing self in the bottom corner and give the props the whole wall.
+7. Press **`f`** again to come back to the land of the face-tracked.
+
+The mouth needs microphone access. The first time, your Mac asks whether Terminal (or GlamCam) may use the microphone. GlamCam only listens for *how loud* you are; nothing is recorded or sent anywhere. No mic? The mouth still follows your lips whenever there's a little light on your face.
 
 Cave Mode keeps the costume's lighting from the moment you froze it, so it stays bright while you go dark. Neon wigs and props look especially haunted.
 
@@ -136,6 +143,8 @@ Props hang *behind* you: GlamCam already knows which pixels are you (the same tr
 | 🖱️ **Double-click** a prop | Bring it **in front of you**, so your chair and body can't block it. Double-click again to send it back to the wall |
 | `r` | Put every prop back in its default spot and size |
 
+**Need more wall?** Press **`z`** for room mode: it zooms the camera out (1.25×, then 1.5×) as if you stepped back, and fills the new edges with a soft blur of your room. Or press **`v`** for **hide me**: you vanish, the room goes black, and only the props remain. Perfect for a "be right back" screen that's way better than a frozen face.
+
 Your arrangement saves the moment you let go, and it's there next time you start GlamCam (it lives in `prop-positions.json`, next to your saved wig fits). Is your chair eating the aquarium? Shrink it with the scroll wheel, drag it into a corner, or double-click it to bring it in front.
 
 Heads-up: in the mirrored preview window the Onboard sign reads backwards (and the aquarium shows on the left), just like a real room behind you in a selfie. Everyone on the call sees it the right way round. Dragging works the same either way: grab what you see.
@@ -144,11 +153,13 @@ Heads-up: in the mirrored preview window the Onboard sign reads backwards (and t
 
 <p align="center"><img src="assets/wardrobe.png" alt="Hoodie mode, Shades, Neon Shades, and The Full Send: hoodie plus top hat plus mustache plus neon shades"></p>
 
+> 🥷 **The Onboard Hoodie: Don't leave home without it.**
+
 Two layers that go with **everything**. They stack with whatever wig you're wearing (and with `m` for a mustache).
 
 | Key | Layer | Stats |
 |---|---|---|
-| `o` | **Hoodie mode**: a black athletic hoodie with a neon **Onboard** logo on the chest. The deep hood goes *under* your wig and covers your real hair *and* ears; the body runs off the bottom of the frame like a real hoodie | Hair: **Hooded** · Ears: **Also hooded** |
+| `o` | **Hoodie mode**: the **Onboard Hoodie**, a black athletic hoodie with a neon **Onboard** logo on the chest. Don't leave home without it. The deep hood goes *under* your wig and covers your real hair *and* ears; the body runs off the bottom of the frame like a real hoodie | Hair: **Hooded** · Ears: **Also hooded** |
 | `g` | **Sunglasses**: cycles none → Shades → Neon Shades. They go *on top* of everything | Cool: **Extremely** · Indoors: **Yes, obviously** |
 
 Stacking order, bottom to top: **hoodie** → **wig** → **mustache** → **shades**. Hoodie + Top Hat + Mustache + Neon Shades is officially known as **The Full Send**.
@@ -327,7 +338,7 @@ In this route the preview window is mirrored like a selfie camera. Meet still ge
 
 ## 🎮 Controls
 
-<p align="center"><img src="assets/keys.png" alt="Controls: WASD move, - = size, N next wig, M mustache, X hide hair (Mike Mode), F Cave Mode, B blur, H wig on/off, L lighting, P save, K or Cmd+K keys window, 1-5 props, mouse drag/scroll/double-click props, T aquarium fish, O hoodie, G sunglasses"></p>
+<p align="center"><img src="assets/keys.png" alt="Controls: WASD move, - = size, N next wig, M mustache, X hide hair (Mike Mode), F Cave Mode, B blur, H wig on/off, L lighting, P save, K or Cmd+K keys window, 1-5 props, mouse drag/scroll/double-click props, T aquarium fish, O hoodie, G sunglasses, V hide me, Z room mode"></p>
 
 Click the **GlamCam** window first, then:
 
@@ -341,12 +352,14 @@ Click the **GlamCam** window first, then:
 | `g` | 😎 [Sunglasses](#-hoodie--shades): cycles none → Shades → Neon Shades, over any wig |
 | `1` `2` `3` `4` | 🪩 [Neon props](#-neon-props) on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck. `0` clears them |
 | `5` | 🐠 [The Aquarium](#-the-aquarium) on / off |
+| `v` | 🫥 Hide me: just the props, on black |
+| `z` | 🔭 Room mode: zoom out for more wall (1× → 1.25× → 1.5×) |
 | 🖱️ drag / scroll / double-click | Move, resize, or bring a prop in front of you ([details](#-neon-props)) |
 | `[` `]` | Shrink / grow the last prop you grabbed |
 | `r` | Reset every prop to its default spot and size |
 | `t` | 🐠 Who's in the aquarium: each fish on its own, Freshwater Community, Saltwater Community, or Party Mode (everyone) |
 | `x` | 🫥 Hide your real hair (**Mike Mode**): paints it out so it can't peek out from under the wig |
-| `f` | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume in place, turn your lights off, lurk with glowing blue eyes. `f` again to resume tracking |
+| `f` | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume in place, turn your lights off, lurk with glowing blue eyes and a talking neon mouth. Drag the costume to move it. `f` again to resume tracking |
 | `h` | Wig off / on (for when your skip-level joins) |
 | `b` | Background blur off / on |
 | `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |
@@ -419,6 +432,8 @@ Pass these to `run.sh` / `run.bat`, or to the app's executable. Every one of the
 | `--props IDS` | Props on the wall, comma-separated: `onboard-sign`, `disco-ball`, `neon-keyboard`, `sucks-to-suck`, `aquarium`. They use the spots you dragged them to | `1`–`5` |
 | `--aquarium FISH` | Who's in the tank. Fresh: `discus`, `angelfish`, `stingray`, `pleco`, `freshwater` (community). Salt: `manta`, `clownfish`, `lionfish`, `saltwater` (community). Or `party` for everyone | `t` |
 | `--no-blur` | Start with background blur off | `b` |
+| `--room 1.5` | Start in room mode (`1.25` or `1.5`) | `z` |
+| `--hide-me` | Start hidden: just the props, on black | `v` |
 
 **🎛️ How it looks**
 
@@ -426,7 +441,7 @@ Pass these to `run.sh` / `run.bat`, or to the app's executable. Every one of the
 |---|---|---|
 | `--match-lighting` | Dim photo wigs to match your room | `l` |
 | `--smooth 0.7` | Steadier wig, a bit more lag (0–0.9, default 0.5) | |
-| `--width` / `--height` / `--fps` | Camera resolution (default 1280×720 @ 30) | |
+| `--width` / `--height` / `--fps` | Broadcast size (default 1920×1080 @ 30). If your webcam can't do it, GlamCam scales up | |
 | `--camera N` | Use camera number N (default 0) | |
 
 **📺 Where it goes**

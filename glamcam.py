@@ -12,10 +12,12 @@ Keys (click the preview window first):
   x        hide your real hair on/off            f      cave mode: freeze the costume, lights off
   m        mustache on any wig (cycles)          k      floating keys window (cmd+K too)
   o        hoodie mode on/off                    g      sunglasses (cycles)
+  v        hide me: just the props, on black     z      room mode: zoom out for more wall
   1-5      neon props behind you (0 clears)      t      who's in the aquarium (cycles)
   drag     move a prop with the mouse            r      put the props back where they started
   scroll   resize the prop under the mouse       [ ]    shrink / grow the last prop you grabbed
   dbl-click  a prop: in front of you / back on the wall
+  in cave mode: drag / scroll your frozen costume to move or resize it
   p        save the wig fit
   q/Esc    quit
 """
@@ -114,6 +116,37 @@ def quiet_native_logs():
         os.dup2(saved, 2)
         os.close(devnull)
         os.close(saved)
+
+
+class MicLevel:
+    """How loud you are right now (0..1), from the default microphone. Drives the Cave Mode mouth.
+    Optional: if there's no mic or no permission, it just stays at 0."""
+
+    def __init__(self):
+        self.level, self.stream, self.failed = 0.0, None, False
+
+    def start(self):
+        if self.stream or self.failed:
+            return
+        try:
+            import sounddevice as sd
+
+            def hear(indata, frames, t, status):
+                rms = float(np.sqrt(np.mean(np.square(indata, dtype=np.float32))))
+                loud = float(np.clip((20 * np.log10(rms + 1e-7) + 52) / 30, 0, 1))  # -52 dB silent .. -22 dB shouting
+                # open fast, close a bit slower, like a real mouth
+                self.level = loud if loud > self.level else 0.75 * self.level + 0.25 * loud
+
+            self.stream = sd.InputStream(channels=1, blocksize=512, callback=hear)
+            self.stream.start()
+        except Exception as e:  # no mic, no PortAudio, or permission denied
+            self.failed = True
+            print(f"Cave Mode mouth: no microphone ({e.__class__.__name__}); it will follow your lips when lit.")
+
+    def stop(self):
+        if self.stream:
+            self.stream.close()
+            self.stream = None
 
 
 def similarity_transform(src, dst):
@@ -304,7 +337,14 @@ class PropDragger:
                 return pr
         return None
 
+    def _on_avatar(self, fx, fy):
+        box = self.r.avatar_box() if self.r.pinned else None
+        return box is not None and box[0] <= fx <= box[2] and box[1] <= fy <= box[3]
+
     def resize(self, factor, pr=None):
+        if pr is None and self.selected == "avatar" and self.r.pinned:
+            self.r.move_avatar(scale=factor)
+            return
         pr = pr or (self.selected if self.selected in self.r.props else None)
         if pr:
             pr.resize(factor)
@@ -318,6 +358,10 @@ class PropDragger:
         w, h = self.size
         fx, fy = self._frame_xy(x, y)
         if event == cv2.EVENT_LBUTTONDOWN:
+            if self._on_avatar(fx, fy):  # cave mode: grab the frozen costume
+                self.grab = ("avatar", fx, fy)
+                self.selected = "avatar"
+                return
             pr = self._hit(fx, fy)
             if pr:
                 self.grab = (pr, fx - pr.x * w, fy - pr.top * h)
@@ -327,18 +371,27 @@ class PropDragger:
             if pr:
                 pr.front = not pr.front
                 save_prop_spots(self.r.all_props)
+        elif event in (cv2.EVENT_MOUSEWHEEL, cv2.EVENT_MOUSEHWHEEL) and self._on_avatar(fx, fy):
+            self.selected = "avatar"
+            self.r.move_avatar(scale=1.06 if cv2.getMouseWheelDelta(flags) > 0 else 1 / 1.06)
         elif event in (cv2.EVENT_MOUSEWHEEL, cv2.EVENT_MOUSEHWHEEL):
             pr = self._hit(fx, fy)
             if pr:
                 self.selected = pr
                 self.resize(1.06 if cv2.getMouseWheelDelta(flags) > 0 else 1 / 1.06, pr)
+        elif event == cv2.EVENT_MOUSEMOVE and self.grab and self.grab[0] == "avatar":
+            _, lx, ly = self.grab
+            self.r.move_avatar(fx - lx, fy - ly)
+            self.grab = ("avatar", fx, fy)
         elif event == cv2.EVENT_MOUSEMOVE and self.grab:
             pr, ox, oy = self.grab
             pr.x = float(np.clip((fx - ox) / w, 0.0, 1.0))
             pr.top = float(np.clip((fy - oy) / h, -0.5, 0.95))
         elif event == cv2.EVENT_LBUTTONUP and self.grab:
+            was_prop = self.grab[0] != "avatar"
             self.grab = None
-            save_prop_spots(self.r.all_props)
+            if was_prop:
+                save_prop_spots(self.r.all_props)
 
 
 
@@ -412,6 +465,10 @@ class GlamRenderer:
         self.hair_seg = None  # loaded on first use
         self.hair_mask = None
         self.pinned = False  # cave mode: freeze the costume in place, then lurk in the dark
+        self.hide_me = False  # v: remove the human, black background, just the props
+        self.lips = 0.0  # how open your mouth is (camera)
+        self.mic = MicLevel()  # how loud you are (microphone), started on first Cave Mode
+        self.mouth = 0.0
         self.props = []  # neon objects on the wall behind you
         self.all_props = []  # every prop, on the wall or not (for saving positions)
         self.prop_boxes = {}  # where each prop was last drawn, for click-and-drag
@@ -429,6 +486,7 @@ class GlamRenderer:
             running_mode=vision.RunningMode.VIDEO, output_confidence_masks=True))
 
     def close(self):
+        self.mic.stop()
         self.landmarker.close()
         self.segmenter.close()
         if self.hair_seg:
@@ -442,6 +500,21 @@ class GlamRenderer:
     def save_fits(self):
         FIT_FILE.write_text(json.dumps(self.fits, indent=1))
 
+    def move_avatar(self, dx=0.0, dy=0.0, scale=1.0):
+        """Cave mode: slide / resize the frozen costume (in frame pixels)."""
+        if self.face is None:
+            return
+        c = self.face.mean(0)
+        self.face = (self.face - c) * scale + c + (dx, dy)
+
+    def avatar_box(self):
+        """Rough box around the costume (hood, hat and all), for grabbing it with the mouse."""
+        if self.face is None:
+            return None
+        c = self.face.mean(0)
+        e = np.linalg.norm(self.face[ANCHOR_IDS.index(263)] - self.face[ANCHOR_IDS.index(33)])
+        return c[0] - 1.6 * e, c[1] - 2.0 * e, c[0] + 1.6 * e, c[1] + 2.4 * e
+
     def nudge(self, dx=0, dy=0, scale=1.0):
         self.fit["dx"] += dx
         self.fit["dy"] += dy
@@ -451,9 +524,16 @@ class GlamRenderer:
         return self.face[[ANCHOR_IDS.index(i) for i in wig.idx]]
 
     def _track(self, image, ts, w, h):
-        if self.pinned and self.face is not None:
-            return
         res = self.landmarker.detect_for_video(image, ts)
+        if res.face_landmarks:  # how open your real mouth is, for the Cave Mode mouth
+            lm = res.face_landmarks[0]
+            gap = np.hypot(lm[13].x - lm[14].x, (lm[13].y - lm[14].y) * h / w)
+            eyes = np.hypot(lm[33].x - lm[263].x, (lm[33].y - lm[263].y) * h / w)
+            self.lips = float(np.clip((gap / max(eyes, 1e-6) - 0.03) / 0.25, 0, 1))
+        else:
+            self.lips = 0.0
+        if self.pinned and self.face is not None:  # cave mode: the costume stays frozen
+            return
         if not res.face_landmarks:
             self.lost_frames += 1
             if self.lost_frames > 10:  # hide the wig if the face is gone for ~1/3 s
@@ -516,10 +596,13 @@ class GlamRenderer:
         return cv2.GaussianBlur(oval, (0, 0), max(2.0, width / 40))
 
     def _composite(self, frame, image, ts):
-        """Background blur and/or painting out your own hair, so only the wig's hair shows."""
+        """Background blur, painting out your own hair, and the props behind you. Blends run in OpenCV."""
+        h, w = frame.shape[:2]
+        if self.hide_me:  # just the props, on black
+            out = np.zeros_like(frame)
+            return self._draw_props(out, ts, self.props) if self.props else out
         if not (self.blur or self.hide_hair or self.props):
             return frame
-        h, w = frame.shape[:2]
         size = (w // 4, h // 4)
         small = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
         hair = None
@@ -527,27 +610,28 @@ class GlamRenderer:
             hair = self._hair(image, ts, w)
             hole = (cv2.resize(hair, size) > 0.35).astype(np.uint8) * 255
             small = cv2.inpaint(small, hole, 5, cv2.INPAINT_TELEA)  # refill hair with the colors around it
-        out = frame.astype(np.float32)
+        out = frame
         if self.blur or self.props:  # where you are, so props can go behind you
             res = self.segmenter.segment_for_video(image, ts)
             m = cv2.GaussianBlur(np.squeeze(res.confidence_masks[0].numpy_view()).astype(np.float32), (0, 0), 3)
             self.mask = m if self.mask is None or self.mask.shape != m.shape else 0.5 * self.mask + 0.5 * m
+            self.mask = np.ascontiguousarray(self.mask, dtype=np.float32)
         if self.blur:
             fill = cv2.resize(cv2.GaussianBlur(small, (0, 0), 6), (w, h), interpolation=cv2.INTER_LINEAR)
-            a = self.mask[..., None]
-            out = out * a + fill * (1 - a)
+            out = cv2.blendLinear(out, fill, self.mask, 1 - self.mask)
         else:
             fill = cv2.resize(cv2.GaussianBlur(small, (0, 0), 2), (w, h), interpolation=cv2.INTER_LINEAR)
         if hair is not None:
-            a = hair[..., None]
-            out = out * (1 - a) + fill * a
+            hair = np.ascontiguousarray(hair, dtype=np.float32)
+            out = cv2.blendLinear(out, fill, 1 - hair, hair)
         if self.props:
             behind = [pr for pr in self.props if not pr.front]
             if behind:  # on the wall: you stay in front of them
-                a = self.mask[..., None]
-                out = out * a + self._draw_props(out.copy(), ts, behind) * (1 - a)
-            out = self._draw_props(out, ts, [pr for pr in self.props if pr.front])  # in front of you
-        return out.astype(np.uint8)
+                out = cv2.blendLinear(out, self._draw_props(out.copy(), ts, behind), self.mask, 1 - self.mask)
+            front = [pr for pr in self.props if pr.front]
+            if front:  # in front of you
+                out = self._draw_props(out.copy() if out is frame else out, ts, front)
+        return out
 
     @staticmethod
     def _blit(img, sprite, left, top, clip=None, alpha=1.0):
@@ -619,13 +703,24 @@ class GlamRenderer:
                           [0, s, (1 - s) * c[1] + fit["dy"]],
                           [0, 0, 1]])
         m = similarity_transform(wig.ref, self._layer_pts(wig)) @ tweak
-        warped = cv2.warpAffine(wig.image, m, (w, h), flags=cv2.INTER_LINEAR,
+        # only warp and blend the rectangle the layer actually covers (big win at 1080p)
+        ih, iw = wig.image.shape[:2]
+        corners = np.array([[0, 0, 1], [iw, 0, 1], [0, ih, 1], [iw, ih, 1]], np.float64) @ m.T
+        x0, y0 = np.maximum(np.floor(corners.min(0)).astype(int), 0)
+        x1, y1 = np.minimum(np.ceil(corners.max(0)).astype(int), [w, h])
+        if x0 >= x1 or y0 >= y1:
+            return frame
+        m_roi = m.copy()
+        m_roi[:, 2] -= (x0, y0)
+        warped = cv2.warpAffine(wig.image, m_roi, (int(x1 - x0), int(y1 - y0)), flags=cv2.INTER_LINEAR,
                                 borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
         a = warped[..., 3:].astype(np.float32) / 255
         rgb = warped[..., :3].astype(np.float32)
         if gain is not None:
             rgb = np.minimum(rgb * gain, 255)
-        return (rgb * a + frame * (1 - a)).astype(np.uint8)
+        roi = frame[y0:y1, x0:x1]
+        frame[y0:y1, x0:x1] = (rgb * a + roi * (1 - a)).astype(np.uint8)
+        return frame
 
     def process(self, frame, ts):
         h, w = frame.shape[:2]
@@ -633,36 +728,69 @@ class GlamRenderer:
         self._track(image, ts, w, h)
         self._match_lighting(frame)
         out = self._composite(frame, image, ts)
-        if self.show_wig and self.face is not None:
+        if out is frame:
+            out = frame.copy()  # layers draw in place; never scribble on the camera frame
+        if self.show_wig and self.face is not None and not self.hide_me:
             drawn = set()
             for layer in (self.hoodie, self.wig, self.stache, self.glasses):  # bottom to top
                 if layer is None or layer.id in drawn:
                     continue
                 drawn.add(layer.id)
                 out = self._draw_wig(out, layer, self.gain if layer is self.wig else None)
-        if self.pinned and self.face is not None:
+        if self.pinned and self.face is not None and not self.hide_me:
             out = self._cave_eyes(out, frame, ts)
         return out
 
     def _cave_eyes(self, out, frame, ts):
-        """Cave mode: neon-blue eyes fade in where yours were as the room goes dark. And they blink."""
+        """Cave mode: neon-blue eyes (that blink) and a neon mouth (that talks) fade in as the room goes dark."""
         h, w = frame.shape[:2]
         luma = float(cv2.cvtColor(cv2.resize(frame, (64, 36), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2GRAY).mean())
         dark = float(np.clip((70 - luma) / 45, 0, 1))
-        if dark <= 0 or ts % 4200 < 150:  # lights on, or mid-blink
+        if dark <= 0:
             return out
+        self.mic.start()
+        talk = max(self.mic.level, self.lips)
+        self.mouth = talk if talk > self.mouth else 0.6 * self.mouth + 0.4 * talk
         f = {i: self.face[n] for n, i in enumerate(ANCHOR_IDS)}
-        eyes = [(f[33] + f[133]) / 2, (f[362] + f[263]) / 2]
-        r = max(3, int(0.055 * np.linalg.norm(f[263] - f[33])))
-        glow = np.zeros((h, w, 3), np.float32)
-        for c in eyes:
-            cv2.ellipse(glow, (int(c[0]), int(c[1])), (r * 2, r), 0, 0, 360, (255, 190, 30), -1, cv2.LINE_AA)
+        e_vec = f[263] - f[33]
+        e = float(np.linalg.norm(e_vec))
+        across = e_vec / max(e, 1e-6)
+        down = np.array([-across[1], across[0]])
+        if np.dot(down, f[168] - f[10]) < 0:
+            down = -down
+        tilt = float(np.degrees(np.arctan2(across[1], across[0])))
+        # work in a box around the face only (cheap at 1080p)
+        c = self.face.mean(0)
+        x0, y0 = int(max(c[0] - 1.5 * e, 0)), int(max(c[1] - 1.2 * e, 0))
+        x1, y1 = int(min(c[0] + 1.5 * e, w)), int(min(c[1] + 1.6 * e, h))
+        if x0 >= x1 or y0 >= y1:
+            return out
+        off = np.array([x0, y0])
+        glow = np.zeros((y1 - y0, x1 - x0, 3), np.float32)
+        core = np.zeros_like(glow)
+        pt = lambda v: (int(v[0] - off[0]), int(v[1] - off[1]))
+        r = max(3, int(0.055 * e))
+        if ts % 4200 >= 150:  # eyes, unless mid-blink
+            for eye in ((f[33] + f[133]) / 2, (f[362] + f[263]) / 2):
+                cv2.ellipse(glow, pt(eye), (r * 2, r), tilt, 0, 360, (255, 190, 30), -1, cv2.LINE_AA)
+                cv2.ellipse(core, pt(eye), (int(r * 1.2), max(2, r // 2)), tilt, 0, 360, (255, 245, 210), -1, cv2.LINE_AA)
+        # the mouth: about 0.63 eye-widths below the eyes; a closed smile line that opens when you talk
+        mouth = (f[33] + f[263]) / 2 + down * 0.63 * e
+        mw = int(0.3 * e)
+        mh = int(2 + self.mouth * 0.2 * e)
+        lw = max(2, int(e / 45))
+        if self.mouth < 0.08:
+            cv2.ellipse(glow, pt(mouth), (mw, max(3, int(0.06 * e))), tilt, 15, 165, (210, 95, 255), lw * 2, cv2.LINE_AA)
+            cv2.ellipse(core, pt(mouth), (mw, max(3, int(0.06 * e))), tilt, 15, 165, (240, 210, 255), lw, cv2.LINE_AA)
+        else:
+            cv2.ellipse(glow, pt(mouth), (mw, mh), tilt, 0, 360, (210, 95, 255), lw * 2, cv2.LINE_AA)
+            cv2.ellipse(core, pt(mouth), (mw, mh), tilt, 0, 360, (240, 210, 255), lw, cv2.LINE_AA)
+            cv2.ellipse(glow, pt(mouth + down * mh * 0.35), (int(mw * 0.55), max(2, int(mh * 0.45))), tilt, 0, 360,
+                        (60, 40, 255), -1, cv2.LINE_AA)  # a little neon tongue, obviously
         halo = cv2.GaussianBlur(glow, (0, 0), r * 1.6) * 2.2
-        core = np.zeros((h, w, 3), np.float32)
-        for c in eyes:
-            cv2.ellipse(core, (int(c[0]), int(c[1])), (int(r * 1.2), max(2, r // 2)), 0, 0, 360, (255, 245, 210), -1, cv2.LINE_AA)
-        lit = out.astype(np.float32) + (halo + glow * 0.8 + core) * dark
-        return np.clip(lit, 0, 255).astype(np.uint8)
+        roi = out[y0:y1, x0:x1].astype(np.float32)
+        out[y0:y1, x0:x1] = np.clip(roi + (halo + glow * 0.8 + core) * dark, 0, 255).astype(np.uint8)
+        return out
 
 
 # ---------------------------------------------------------------- app
@@ -723,15 +851,35 @@ def open_virtual_camera(w, h, fps):
     return cam
 
 
+def make_room(frame, zoom):
+    """Room mode: shrink the camera picture toward the bottom-center and fill the new space around it with a
+    soft, blurred stretch of your room, so there's more wall for props. zoom 1.0 = off."""
+    if zoom <= 1.0:
+        return frame
+    h, w = frame.shape[:2]
+    sw, sh = int(w / zoom), int(h / zoom)
+    small = cv2.resize(frame, (sw, sh), interpolation=cv2.INTER_AREA)
+    wall = cv2.resize(cv2.GaussianBlur(cv2.resize(frame, (w // 8, h // 8), interpolation=cv2.INTER_AREA), (0, 0), 3),
+                      (w, h), interpolation=cv2.INTER_LINEAR)
+    x0, y0 = (w - sw) // 2, h - sh  # sit on the bottom edge, like you stepped back from the camera
+    feather = np.zeros((h, w), np.float32)
+    pad = max(4, sw // 30)
+    feather[y0 + pad:, x0 + pad:x0 + sw - pad] = 1.0
+    feather = np.ascontiguousarray(cv2.GaussianBlur(feather, (0, 0), pad / 2))
+    placed = wall.copy()
+    placed[y0:, x0:x0 + sw] = small
+    return cv2.blendLinear(placed, wall, feather, 1 - feather)
+
+
 def draw_hud(img, text, y=34):
     cv2.putText(img, text, (16, y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 4, cv2.LINE_AA)
     cv2.putText(img, text, (16, y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (210, 95, 255), 2, cv2.LINE_AA)
 
 
 HELP = [("w a s d", "move the wig"), ("- / =", "shrink / grow"), ("n", "next wig"), ("m", "mustache on any wig"),
-        ("o", "hoodie mode"), ("g", "sunglasses"),
+        ("o", "hoodie mode"), ("g", "sunglasses"), ("v", "hide me (props only)"), ("z", "room mode (zoom out)"),
         ("x", "hide my real hair"), ("f", "cave mode (glowing eyes)"), ("b", "background blur"),
-        ("1 - 5", "neon props (0 = none)"), ("drag", "move a prop"), ("scroll  [ ]", "resize a prop"), ("dbl-click", "prop in front of you"), ("r", "reset props"), ("t", "aquarium fish"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
+        ("1 - 5", "neon props (0 = none)"), ("drag", "move a prop"), ("scroll  [ ]", "resize a prop"), ("dbl-click", "prop in front of you"), ("cave: drag", "move your avatar"), ("r", "reset props"), ("t", "aquarium fish"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
         ("k  cmd+K", "this window"),
         ("q", "quit")]
 KEYS_WINDOW = "GlamCam Keys"
@@ -806,7 +954,11 @@ def run(args):
     ok, frame = cap.read()
     if not ok:
         sys.exit("Camera opened but returned no frames.")
-    h, w = frame.shape[:2]
+    w, h = args.width, args.height  # always broadcast at the size you asked for, even if the camera can't
+    cam_h, cam_w = frame.shape[:2]
+    if (cam_w, cam_h) != (w, h):
+        print(f"Camera gives {cam_w}x{cam_h}; scaling to {w}x{h}.")
+    room = args.room if args.room in (1.0, 1.25, 1.5) else max(1.0, args.room)
 
     renderer = GlamRenderer(wigs[current], blur=not args.no_blur, smooth=args.smooth, relight=args.match_lighting,
                             hide_hair=args.hide_hair)
@@ -822,6 +974,7 @@ def run(args):
     staches = [None] + [wg for wg in wigs if wg.kind == "mustache"]
     hoodies = [None] + [wg for wg in wigs if wg.kind == "hoodie"]
     shades = [None] + [wg for wg in wigs if wg.kind == "glasses"]
+    renderer.hide_me = args.hide_me
     if args.hoodie:
         renderer.hoodie = hoodies[1] if len(hoodies) > 1 else None
     if args.glasses:
@@ -847,7 +1000,9 @@ def run(args):
         while ok:
             ts = max(int((time.monotonic() - t0) * 1000), last_ts + 1)  # must strictly increase
             last_ts = ts
-            out = renderer.process(frame, ts)
+            if frame.shape[1] != w or frame.shape[0] != h:
+                frame = cv2.resize(frame, (w, h), interpolation=cv2.INTER_LINEAR)
+            out = renderer.process(make_room(frame, room), ts)
             if cam:
                 cam.send(out)
             # OBS mode: clean, un-mirrored frames. Otherwise a mirrored preview, like a selfie cam.
@@ -898,6 +1053,10 @@ def run(args):
                 renderer.glasses = shades[(shades.index(renderer.glasses) + 1) % len(shades)]
             elif k == ord("b"):
                 renderer.blur = not renderer.blur
+            elif k == ord("v"):
+                renderer.hide_me = not renderer.hide_me
+            elif k == ord("z"):  # room mode: 1x -> 1.25x -> 1.5x -> 1x
+                room = {1.0: 1.25, 1.25: 1.5}.get(room, 1.0)
             elif k == ord("x"):
                 renderer.hide_hair = not renderer.hide_hair
             elif k == ord("f"):
@@ -952,13 +1111,15 @@ def main():
     ap.add_argument("--download-models", action="store_true", help="fetch the AI models and exit")
     ap.add_argument("--camera", type=int, default=0, help="camera index (default 0)")
     ap.add_argument("--input", help="video file to use instead of a camera (for testing)")
-    ap.add_argument("--width", type=int, default=1280)
-    ap.add_argument("--height", type=int, default=720)
+    ap.add_argument("--width", type=int, default=1920)
+    ap.add_argument("--height", type=int, default=1080)
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--no-blur", action="store_true", help="start with background blur off")
     ap.add_argument("--match-lighting", action="store_true", help="dim/brighten photo wigs to match your room")
     ap.add_argument("--hide-hair", action="store_true", help="start with your real hair painted out")
     ap.add_argument("--mustache", metavar="NAME", help="start with this mustache layered on (mustache, neon-mustache)")
+    ap.add_argument("--room", type=float, default=1.0, help="room mode: zoom out for more wall (1.25, 1.5)")
+    ap.add_argument("--hide-me", action="store_true", help="start hidden: just the props, on black")
     ap.add_argument("--hoodie", action="store_true", help="start in hoodie mode")
     ap.add_argument("--glasses", metavar="NAME", help="start with sunglasses on: shades, neon-shades")
     ap.add_argument("--props", metavar="IDS", help="neon props to start with, comma-separated (see props/)")

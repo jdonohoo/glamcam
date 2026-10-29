@@ -6,7 +6,7 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_all
 
 datas, binaries, hiddenimports = [], [], []
-for pkg in ("mediapipe", "pyvirtualcam"):
+for pkg in ("mediapipe", "pyvirtualcam", "sounddevice", "_sounddevice_data"):
     d, b, h = collect_all(pkg)
     datas += d
     binaries += b
@@ -47,6 +47,7 @@ if sys.platform == "darwin":
             "CFBundleShortVersionString": Path("VERSION").read_text().strip(),
             # without this macOS refuses camera access outright, with no pop-up
             "NSCameraUsageDescription": "GlamCam needs your camera to put a wig on you.",
+            "NSMicrophoneUsageDescription": "GlamCam listens (never records) so your Cave Mode mouth moves when you talk.",
             "NSHighResolutionCapable": True,
         },
     )
