@@ -385,14 +385,21 @@ def save_prop_spots(props):
     PROP_SPOTS_FILE.write_text(json.dumps(moved, indent=1) + "\n")
 
 
-def scene_snapshot(r, room):
-    """Everything about your current look, as plain data."""
+def scene_snapshot(r, room, size):
+    """Everything about your current look, as plain data. size = (w, h) of the frame."""
+    w, h = size
+    layers = [lay for lay in (r.wig, r.stache, r.hoodie, r.glasses) if lay is not None]
     return {
         "wig": r.wig.id, "mustache": r.stache.id if r.stache else None,
         "hoodie": r.hoodie.id if r.hoodie else None, "glasses": r.glasses.id if r.glasses else None,
         "props": [pr.id for pr in r.props], "aquarium": r.species,
         "spots": {pr.id: [round(pr.x, 4), round(pr.top, 4), round(pr.height, 4), pr.front] for pr in r.all_props},
         "blur": r.blur, "hide_hair": r.hide_hair, "relight": r.relight, "room": room, "critters": r.critters.on,
+        # cave mode: on/off, plus exactly where your frozen avatar is and how big (as fractions of the frame)
+        "cave": bool(r.pinned and r.face is not None),
+        "avatar": [[round(x / w, 5), round(y / h, 5)] for x, y in r.face] if r.pinned and r.face is not None else None,
+        "hide_me": r.hide_me,
+        "fits": {lay.id: dict(r.fits.get(lay.id, {"dx": 0.0, "dy": 0.0, "scale": 1.0})) for lay in layers},
     }
 
 
@@ -411,15 +418,18 @@ def describe_scene(scene):
     return " + ".join(bits) + (f", {n} prop{'s' if n != 1 else ''}" if n else "")
 
 
-def save_scene(slot, r, room):
+def save_scene(slot, r, room, size):
     scenes = load_scenes()
-    scenes[str(slot)] = scene_snapshot(r, room)
+    scenes[str(slot)] = scene_snapshot(r, room, size)
     SCENES_FILE.write_text(json.dumps(scenes, indent=1) + "\n")
 
 
-def apply_scene(scene, r, wigs, props_by_id):
+def apply_scene(scene, r, wigs, props_by_id, size):
     """Put on a saved look. Returns (wig index, room zoom)."""
+    w, h = size
     by_id = {wg.id: wg for wg in wigs}
+    for wid, fit in scene.get("fits", {}).items():  # how you had each layer nudged and sized
+        r.fits[wid] = dict(fit)
     r.set_wig(by_id.get(scene.get("wig"), r.wig))
     r.stache = by_id.get(scene.get("mustache"))
     r.hoodie = by_id.get(scene.get("hoodie"))
@@ -434,6 +444,13 @@ def apply_scene(scene, r, wigs, props_by_id):
     r.hide_hair = scene.get("hide_hair", r.hide_hair)
     r.relight = scene.get("relight", r.relight)
     r.critters.on = scene.get("critters", r.critters.on)
+    r.hide_me = scene.get("hide_me", False)
+    avatar = scene.get("avatar")
+    if scene.get("cave") and avatar and len(avatar) == len(ANCHOR_IDS):
+        r.face = np.array([[x * w, y * h] for x, y in avatar], dtype=np.float64)  # right where you left it
+        r.pinned = True
+    else:
+        r.pinned = False  # back to tracking your face
     save_prop_spots(r.all_props)
     return wigs.index(r.wig), float(scene.get("room", 1.0))
 
@@ -1164,12 +1181,12 @@ def run(args):
     def do_scene(action, slot):
         nonlocal current, room
         if action == "save":
-            save_scene(slot, renderer, room)
+            save_scene(slot, renderer, room, (w, h))
             panel.say(f"Saved scene {slot}")
         else:
             scene = load_scenes().get(slot)
             if scene:
-                current, room = apply_scene(scene, renderer, wigs, {p.id: p for p in renderer.all_props})
+                current, room = apply_scene(scene, renderer, wigs, {p.id: p for p in renderer.all_props}, (w, h))
                 panel.say(f"Loaded scene {slot}")
             else:
                 panel.say(f"Scene {slot} is empty: click Save to fill it")
@@ -1203,7 +1220,7 @@ def run(args):
     if args.scene:
         scene = load_scenes().get(str(args.scene))
         if scene:
-            current, room = apply_scene(scene, renderer, wigs, {p.id: p for p in renderer.all_props})
+            current, room = apply_scene(scene, renderer, wigs, {p.id: p for p in renderer.all_props}, (w, h))
         else:
             print(f"Scene {args.scene} is empty. Set things up, then press i and {args.scene} to save it.")
     try:

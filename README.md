@@ -157,7 +157,7 @@ For those of us who like to lurk in the dark.
 3. Turn your lights off. Your face fades into the void; your Jeff Ears, Glaaron hair or neon mustache stay floating right where your head was.
 4. As the room goes dark, **two neon-blue eyes** fade in where yours were. They blink every few seconds. Nobody asked for this. Everybody needed it.
 5. A **neon mouth** fades in too, and **it talks when you talk**: it listens to your microphone, so it works in total darkness (when there's enough light it follows your actual lips). Quiet: a neon smile. Talking: it opens. Yelling: tongue.
-6. **Drag the frozen costume** anywhere in the GlamCam window (scroll over it, or `[` `]`, to resize). Park your glowing self in the bottom corner and give the props the whole wall.
+6. **Drag the frozen costume** anywhere in the GlamCam window (scroll over it, or `[` `]`, to resize). Park your glowing self in the bottom corner and give the props the whole wall. Then [save it as a scene](#-scenes) and it's there every time.
 7. Now press **`v`** for 👻 **ghost mode**: the camera picture is gone completely (black background, just your props and your frozen, glowing avatar). Your real self can't sneak back in, even if a lamp turns on or the monitor lights up your face. The eyes and mouth stay fully lit no matter how bright your room really is.
 8. Press **`f`** again to come back to the land of the face-tracked.
 
@@ -265,7 +265,9 @@ They run in front of everything, including you, and they keep running in Cave Mo
 
 Got the *perfect* setup? Hoodie, Neon Jeff Ears, shades, the aquarium in party mode tucked into the corner, Cave Mode ready to go? Save it as a **scene**. You get **5 slots**.
 
-A scene remembers **everything**: the wig, mustache, hoodie and shades, which props are up, exactly where you dragged them and how big you made them, who's in the aquarium, critters, blur, Mike Mode and room mode.
+A scene remembers **everything**: the wig, mustache, hoodie and shades (and how you nudged and sized each one), which props are up, exactly where you dragged them and how big you made them, who's in the aquarium, critters, blur, Mike Mode, room mode, and **Cave Mode**: whether you're frozen, plus exactly where you parked your glowing avatar and how big you made it, and ghost mode too.
+
+> 🦇 **For the cave lurkers:** set up your lair once (freeze into Cave Mode, drag yourself into the corner, shrink yourself, arrange the props, press `v` for ghost mode) and save it. From then on, `./run.sh --scene 1` (or **Load** in the keys window) puts you straight back in the dark, sized and positioned exactly how you left it. Bam.
 
 **The easy way:** press **`k`** to open the **GlamCam Keys** window, then click **Save** next to a slot, and later **Load** to put it all back on. The window shows what's in each slot (e.g. `top-hat + hoodie + shades, 2 props`) and confirms what you did. It's a separate window, so none of it ever shows on camera or in OBS.
 
