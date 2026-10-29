@@ -11,6 +11,7 @@ Keys (click the preview window first):
   b        background blur on/off                l      lighting match on/off
   x        hide your real hair on/off            f      cave mode: freeze the costume, lights off
   m        mustache on any wig (cycles)          k      floating keys window (cmd+K too)
+  1-4      neon props behind you (0 clears)
   p        save the wig fit
   q/Esc    quit
 """
@@ -46,6 +47,7 @@ else:
     BUNDLE = USER_DIR = HERE
 MODEL_DIR = BUNDLE / "models"
 WIG_DIRS = [BUNDLE / "wigs", USER_DIR / "my-wigs"]
+PROP_DIR = BUNDLE / "props"
 FIT_FILE = USER_DIR / "fit.json"
 WINDOW = "GlamCam"  # never changes, so OBS Window Capture finds it again after a restart
 
@@ -173,6 +175,39 @@ def load_wigs():
     return sorted(wigs, key=lambda wg: wg.order)  # stable: ties keep folder + name order
 
 
+class Prop:
+    """A neon object for the wall behind you. Placed in frame fractions, drawn behind your silhouette."""
+
+    def __init__(self, png_path):
+        meta = json.loads(png_path.with_suffix(".json").read_text())
+        self.id = png_path.stem
+        self.name = meta.get("name", self.id)
+        self.key = str(meta["key"])
+        self.x, self.top, self.height = meta["x"], meta["top"], meta["height"]
+        self.bob = meta.get("bob", 0.0)  # floats up and down by this fraction of the frame
+        self.flicker = meta.get("flicker", False)  # neon-sign stutter
+        self.image = cv2.imread(str(png_path), cv2.IMREAD_UNCHANGED)
+        if self.image is None or self.image.ndim != 3 or self.image.shape[2] != 4:
+            raise ValueError(f"{png_path} is not a transparent PNG")
+        self._sized = {}
+
+    def sized(self, frame_h):
+        if frame_h not in self._sized:
+            k = self.height * frame_h / self.image.shape[0]
+            self._sized[frame_h] = cv2.resize(self.image, None, fx=k, fy=k, interpolation=cv2.INTER_AREA)
+        return self._sized[frame_h]
+
+
+def load_props():
+    props = []
+    for png in sorted(PROP_DIR.glob("*.png")):
+        try:
+            props.append(Prop(png))
+        except (ValueError, KeyError, json.JSONDecodeError, OSError) as e:
+            print(f"Skipping prop {png.name}: {e}")
+    return sorted(props, key=lambda pr: pr.key)
+
+
 def make_wig(photo, name, out_dir=USER_DIR / "my-wigs"):
     """Cut the hair out of a photo and save it as a wig (PNG + anchor JSON)."""
     bgr = cv2.imread(str(photo))
@@ -241,6 +276,7 @@ class GlamRenderer:
         self.hair_seg = None  # loaded on first use
         self.hair_mask = None
         self.pinned = False  # cave mode: freeze the costume in place, then lurk in the dark
+        self.props = []  # neon objects on the wall behind you
 
         with quiet_native_logs():
             self._load_models()
@@ -342,7 +378,7 @@ class GlamRenderer:
 
     def _composite(self, frame, image, ts):
         """Background blur and/or painting out your own hair, so only the wig's hair shows."""
-        if not (self.blur or self.hide_hair):
+        if not (self.blur or self.hide_hair or self.props):
             return frame
         h, w = frame.shape[:2]
         size = (w // 4, h // 4)
@@ -353,10 +389,11 @@ class GlamRenderer:
             hole = (cv2.resize(hair, size) > 0.35).astype(np.uint8) * 255
             small = cv2.inpaint(small, hole, 5, cv2.INPAINT_TELEA)  # refill hair with the colors around it
         out = frame.astype(np.float32)
-        if self.blur:
+        if self.blur or self.props:  # where you are, so props can go behind you
             res = self.segmenter.segment_for_video(image, ts)
             m = cv2.GaussianBlur(np.squeeze(res.confidence_masks[0].numpy_view()).astype(np.float32), (0, 0), 3)
             self.mask = m if self.mask is None or self.mask.shape != m.shape else 0.5 * self.mask + 0.5 * m
+        if self.blur:
             fill = cv2.resize(cv2.GaussianBlur(small, (0, 0), 6), (w, h), interpolation=cv2.INTER_LINEAR)
             a = self.mask[..., None]
             out = out * a + fill * (1 - a)
@@ -365,7 +402,27 @@ class GlamRenderer:
         if hair is not None:
             a = hair[..., None]
             out = out * (1 - a) + fill * a
+        if self.props:
+            a = self.mask[..., None]
+            out = out * a + self._draw_props(out.copy(), ts) * (1 - a)
         return out.astype(np.uint8)
+
+    def _draw_props(self, img, ts):
+        h, w = img.shape[:2]
+        for pr in self.props:
+            p = pr.sized(h)
+            ph, pw = p.shape[:2]
+            top = int((pr.top + pr.bob * np.sin(ts / 1000 * 1.7)) * h)
+            left = int(pr.x * w - pw / 2)
+            x0, y0, x1, y1 = max(left, 0), max(top, 0), min(left + pw, w), min(top + ph, h)
+            if x0 >= x1 or y0 >= y1:
+                continue
+            crop = p[y0 - top:y1 - top, x0 - left:x1 - left].astype(np.float32)
+            a = crop[..., 3:] / 255
+            if pr.flicker and (ts // 70 * 2654435761) % 100 < 4:  # the occasional neon stutter
+                a *= 0.3
+            img[y0:y1, x0:x1] = crop[..., :3] * a + img[y0:y1, x0:x1] * (1 - a)
+        return img
 
     def _draw_wig(self, frame, wig=None, gain=None):
         wig = wig or self.wig
@@ -396,7 +453,29 @@ class GlamRenderer:
             out = self._draw_wig(out, self.wig, self.gain)
             if self.stache is not None and self.stache is not self.wig:
                 out = self._draw_wig(out, self.stache)
+        if self.pinned and self.face is not None:
+            out = self._cave_eyes(out, frame, ts)
         return out
+
+    def _cave_eyes(self, out, frame, ts):
+        """Cave mode: neon-blue eyes fade in where yours were as the room goes dark. And they blink."""
+        h, w = frame.shape[:2]
+        luma = float(cv2.cvtColor(cv2.resize(frame, (64, 36), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2GRAY).mean())
+        dark = float(np.clip((70 - luma) / 45, 0, 1))
+        if dark <= 0 or ts % 4200 < 150:  # lights on, or mid-blink
+            return out
+        f = {i: self.face[n] for n, i in enumerate(ANCHOR_IDS)}
+        eyes = [(f[33] + f[133]) / 2, (f[362] + f[263]) / 2]
+        r = max(3, int(0.055 * np.linalg.norm(f[263] - f[33])))
+        glow = np.zeros((h, w, 3), np.float32)
+        for c in eyes:
+            cv2.ellipse(glow, (int(c[0]), int(c[1])), (r * 2, r), 0, 0, 360, (255, 190, 30), -1, cv2.LINE_AA)
+        halo = cv2.GaussianBlur(glow, (0, 0), r * 1.6) * 2.2
+        core = np.zeros((h, w, 3), np.float32)
+        for c in eyes:
+            cv2.ellipse(core, (int(c[0]), int(c[1])), (int(r * 1.2), max(2, r // 2)), 0, 0, 360, (255, 245, 210), -1, cv2.LINE_AA)
+        lit = out.astype(np.float32) + (halo + glow * 0.8 + core) * dark
+        return np.clip(lit, 0, 255).astype(np.uint8)
 
 
 # ---------------------------------------------------------------- app
@@ -463,8 +542,9 @@ def draw_hud(img, text, y=34):
 
 
 HELP = [("w a s d", "move the wig"), ("- / =", "shrink / grow"), ("n", "next wig"), ("m", "mustache on any wig"),
-        ("x", "hide my real hair"), ("f", "cave mode (freeze it)"), ("b", "background blur"),
-        ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"), ("k  cmd+K", "this window"),
+        ("x", "hide my real hair"), ("f", "cave mode (glowing eyes)"), ("b", "background blur"),
+        ("1 2 3 4", "neon props (0 = none)"), ("h", "wig on / off"), ("l", "lighting match"), ("p", "save the fit"),
+        ("k  cmd+K", "this window"),
         ("q", "quit")]
 KEYS_WINDOW = "GlamCam Keys"
 
@@ -552,6 +632,11 @@ def run(args):
     hud_until = 0 if args.obs_window else time.monotonic() + 4
     win_state, keys_state = {}, {}
     staches = [None] + [wg for wg in wigs if wg.kind == "mustache"]
+    props = {pr.key: pr for pr in load_props()}
+    for pid in filter(None, (args.props or "").split(",")):
+        pr = next((p for p in props.values() if p.id == pid.strip()), None)
+        if pr:
+            renderer.props.append(pr)
     if args.mustache:
         renderer.stache = next((wg for wg in staches[1:] if wg.id == args.mustache), None)
     try:
@@ -582,6 +667,12 @@ def run(args):
                 renderer.set_wig(wigs[current])
                 if not args.obs_window:
                     hud_until = time.monotonic() + 2
+            elif k == ord("0"):
+                renderer.props = []
+            elif chr(k) in props:
+                pr = props[chr(k)]
+                renderer.props = [p for p in renderer.props if p is not pr] if pr in renderer.props \
+                    else sorted(renderer.props + [pr], key=lambda p: p.key)
             elif k == ord("m"):
                 renderer.stache = staches[(staches.index(renderer.stache) + 1) % len(staches)]
             elif k == ord("b"):
@@ -620,11 +711,12 @@ def self_test():
         raise RuntimeError("no wigs bundled")
     r = GlamRenderer(wigs[0], relight=True, hide_hair=True)
     r.stache = next((wg for wg in wigs if wg.kind == "mustache"), None)
+    r.props = load_props()
     frame = np.full((720, 1280, 3), 128, np.uint8)
     for k in range(3):
         r.process(frame, k * 33 + 1)
     r.close()
-    print(f"self-test ok: {len(wigs)} wigs, models from {MODEL_DIR}")
+    print(f"self-test ok: {len(wigs)} wigs, {len(r.props)} props, models from {MODEL_DIR}")
 
 
 def main():
@@ -643,6 +735,7 @@ def main():
     ap.add_argument("--match-lighting", action="store_true", help="dim/brighten photo wigs to match your room")
     ap.add_argument("--hide-hair", action="store_true", help="start with your real hair painted out")
     ap.add_argument("--mustache", metavar="NAME", help="start with this mustache layered on (mustache, neon-mustache)")
+    ap.add_argument("--props", metavar="IDS", help="neon props to start with, comma-separated (see props/)")
     ap.add_argument("--smooth", type=float, default=0.5, help="0 = raw tracking, 0.9 = very smooth/laggy")
     ap.add_argument("--no-vcam", action="store_true", help="preview only, don't send to the virtual camera")
     ap.add_argument("--obs-window", action="store_true",

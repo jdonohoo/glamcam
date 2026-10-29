@@ -15,7 +15,7 @@ for pkg in ("mediapipe", "pyvirtualcam"):
 for model in ("face_landmarker.task", "selfie_segmenter.tflite", "hair_segmenter.tflite"):
     if not Path("models", model).exists():
         sys.exit(f"models/{model} is missing. Run: python glamcam.py --download-models")
-datas += [("models", "models"), ("wigs", "wigs")]
+datas += [("models", "models"), ("wigs", "wigs"), ("props", "props")]
 
 a = Analysis(
     ["glamcam.py"],

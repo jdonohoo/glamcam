@@ -18,4 +18,4 @@ Glaaron · 🎩 Top Hat · Glaaron Magnifique · 👑 The Ultimate Glaaron (hair
 
 GlamCam opens a window called **GlamCam** with your wig on. To get it into Google Meet, capture that window in OBS and start OBS's virtual camera. Full steps (including the one-time OBS setup) are in the [README](https://github.com/jdonohoo/glamcam#-getting-started).
 
-Press **k** (or ⌘K / Ctrl+K) in the GlamCam window for the keys. **n** = next wig, **m** = add a mustache to any wig, **x** = hide your real hair, **f** = 🦇 Cave Mode (freeze the costume, kill the lights, lurk).
+Press **k** (or ⌘K / Ctrl+K) in the GlamCam window for the keys. **n** = next wig, **m** = add a mustache to any wig, **x** = hide your real hair, **f** = 🦇 Cave Mode (freeze the costume, kill the lights, lurk with glowing blue eyes). **1–4** = 🪩 neon props on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck.

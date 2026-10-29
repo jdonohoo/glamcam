@@ -81,7 +81,8 @@ Every feature is one key away. Click the GlamCam window and go.
 | 🎩 **Face-tracking costumes**: wigs, hats, mustaches and ears that follow you as you lean, tilt and nod | `n` | Accuracy: **Uncanny** · Wigs: **12 and counting** |
 | 🥸 **Mustache mix & match**: put a mustache on *any* wig | `m` | Combinations: **Irresponsible** |
 | 🫥 **Hair hider**: paints your real hair out so it can't sneak out from under the wig | `x` | Hair: **Hidden** · Shame: **Also hidden** |
-| 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume, kill the lights, lurk | `f` | Lights: **Optional** · Mystery: **Maximum** |
+| 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume, kill the lights, lurk with glowing neon-blue eyes | `f` | Lights: **Optional** · Eyes: **Glowing** |
+| 🪩 **[Neon props](#-neon-props)**: an Onboard sign, a disco ball, a floating neon keyboard and a "sucks to suck" window, hung on the wall *behind* you | `1` `2` `3` `4` | Wall: **Decorated** |
 | 🌫️ **Background blur**: your laundry pile, gone | `b` | Laundry: **Gone** |
 | 💡 **Lighting match**: dim a wig to match your room | `l` | Default: **Off, because funnier** |
 | 🧪 **[Make your own wig](#-make-your-own-wig)**: any photo, any hair | `--make-wig` | Kevins: **Unlimited** |
@@ -97,9 +98,29 @@ For those of us who like to lurk in the dark.
 1. Get your costume lined up while your lights are on.
 2. Press **`f`**. The costume freezes exactly where it is.
 3. Turn your lights off. Your face fades into the void; your mouse ears, Glaaron hair or neon mustache stay floating right where your head was.
-4. Press **`f`** again to come back to the land of the face-tracked.
+4. As the room goes dark, **two neon-blue eyes** fade in where yours were. They blink every few seconds. Nobody asked for this. Everybody needed it.
+5. Press **`f`** again to come back to the land of the face-tracked.
 
-Cave Mode keeps the costume's lighting from the moment you froze it, so it stays bright while you go dark. Neon wigs look especially haunted.
+Cave Mode keeps the costume's lighting from the moment you froze it, so it stays bright while you go dark. Neon wigs and props look especially haunted.
+
+## 🪩 Neon Props
+
+<p align="center"><img src="assets/props.png" alt="Neon props on the wall behind the mascot: an Onboard sign (1), a disco ball (2), a floating neon keyboard (3), and a four-pane window with 'sucks to suck' (4)"></p>
+
+Decorate the wall behind you. Press a number to toggle a prop, **`0`** to clear the wall.
+
+| Key | Prop | Stats |
+|---|---|---|
+| `1` | **Onboard sign**: our first name, in pink neon, flickering like a real sign | Est.: **A while ago** |
+| `2` | **Disco ball**: hanging from the ceiling, sparkling | Groove: **Permanent** |
+| `3` | **Floating neon keyboard**: gently bobbing in mid-air | Keys pressed: **None, it floats** |
+| `4` | **Sucks to suck**: a neon four-pane window, our [Windows support policy](#-qa-policy) made visible | Sympathy: **None** |
+
+Props hang *behind* you: GlamCam already knows which pixels are you (the same trick the background blur uses), so it draws props only on the background and you stay in front. Walk in front of the disco ball and it disappears behind your head, like a real one. In the dark with Cave Mode they keep glowing.
+
+Heads-up: in the mirrored preview window the Onboard sign reads backwards, just like a real sign behind you in a selfie. Everyone on the call sees it the right way round.
+
+Want them somewhere else? Each prop has a little settings file in [`props/`](props) (`x`, `top`, `height` as fractions of the frame), and you can drop in your own transparent PNG with a matching `.json` to add a prop.
 
 ## 🚀 Getting started
 
@@ -254,8 +275,9 @@ Click the **GlamCam** window first, then:
 | `-` `=` | Shrink / grow the wig |
 | `n` | Next wig |
 | `m` | Mustache on **any** wig: cycles none → The Mustache → Neon Mustache. Disco Inferno with a neon handlebar? Yes. |
+| `1` `2` `3` `4` | 🪩 [Neon props](#-neon-props) on the wall behind you: Onboard sign, disco ball, floating neon keyboard, sucks to suck. `0` clears them |
 | `x` | Hide your real hair: paints it out so it can't peek out from under the wig |
-| `f` | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume in place, turn your lights off, lurk. `f` again to resume tracking |
+| `f` | 🦇 **[Cave Mode](#-cave-mode)**: freeze the costume in place, turn your lights off, lurk with glowing blue eyes. `f` again to resume tracking |
 | `h` | Wig off / on (for when your skip-level joins) |
 | `b` | Background blur off / on |
 | `l` | Lighting match: dim the wig to match your room (off by default, because a wig lit by its own personal sun is funnier) |
@@ -326,6 +348,7 @@ Pass these to `run.sh` / `run.bat`, or to the app's executable.
 | `--match-lighting` | Start with lighting match on |
 | `--hide-hair` | Start with your real hair painted out (`x`) |
 | `--mustache NAME` | Start with a mustache layered on: `mustache` or `neon-mustache` (`m`) |
+| `--props IDS` | Start with props on the wall, e.g. `--props onboard-sign,disco-ball` (`1`–`4`) |
 | `--download-models` | Re-download the AI models (from source) |
 
 ## 🔬 QA Policy
